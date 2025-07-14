@@ -195,7 +195,7 @@ def run_scheduler():
     import time
     while True:
         log_and_alert()
-        time.sleep(1800)
+        time.sleep(1801)
 
 if __name__ == "__main__":
     Thread(target=run_scheduler).start()
