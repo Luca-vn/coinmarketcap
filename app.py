@@ -24,12 +24,6 @@ TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
 TELEGRAM_CHAT_ID = "6664554824"
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
-def safe_read_csv(file_path):
-    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-        return pd.read_csv(file_path)
-    else:
-        return pd.DataFrame()
-
 def get_binance_price_volume():
     url = "https://api.binance.com/api/v3/ticker/24hr"
     try:
@@ -59,18 +53,19 @@ def get_cross_margin_data():
         result = {}
         for item in data:
             asset = item.get("asset")
-            rate_str = item.get("interestRate")
-            if asset in assets and rate_str:
+            if asset in assets:
                 try:
-                    daily_rate = float(rate_str)
-                    hourly_rate = daily_rate / 24
-                    result[asset] = hourly_rate
+                    current = float(item.get("interestRate", 0)) / 24
+                    next_rate = float(item.get("nextInterestRate", 0)) / 24
+                    result[asset] = {"current": current, "next": next_rate}
                 except:
                     continue
         return result
     except Exception as e:
         print("[ERROR] fetch_cross_margin_data:", e)
         return {}
+
+# ... No changes below this line except in index()
 
 def get_funding_rate():
     url = "https://fapi.binance.com/fapi/v1/premiumIndex"
@@ -94,6 +89,20 @@ def get_funding_rate():
         print("[ERROR] get_funding_rate:", e)
         return {}
 
+def log_funding_data():
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:00:00")
+    funding_data = get_funding_rate()
+    if not funding_data:
+        return
+
+    if not os.path.exists(FUNDING_LOG_FILE):
+        with open(FUNDING_LOG_FILE, "w") as f:
+            f.write("timestamp,asset,funding_rate\n")
+
+    with open(FUNDING_LOG_FILE, "a") as f:
+        for asset, rate in funding_data.items():
+            f.write(f"{now},{asset},{rate}\n")
+
 def log_and_alert():
     now = datetime.now().strftime("%Y-%m-%d %H:00:00")
     margin_data = get_cross_margin_data()
@@ -103,11 +112,12 @@ def log_and_alert():
         with open(LOG_FILE, "w") as f:
             f.write("timestamp,asset,hourly_rate\n")
 
-    df_old = safe_read_csv(LOG_FILE)
+    df_old = pd.read_csv(LOG_FILE)
     alert_msgs = []
 
     with open(LOG_FILE, "a") as f:
-        for asset, rate in margin_data.items():
+        for asset, rates in margin_data.items():
+            rate = rates.get("current")
             f.write(f"{now},{asset},{rate}\n")
             df_asset = df_old[df_old["asset"] == asset]
             if len(df_asset) > 0:
@@ -124,23 +134,29 @@ def log_and_alert():
             print("[Telegram Error]", e)
 
 def get_last_logged_margin_data():
-    df = safe_read_csv(LOG_FILE)
-    if df.empty: return {}
-    latest = df.sort_values("timestamp").drop_duplicates("asset", keep="last")
-    return dict(zip(latest["asset"], latest["hourly_rate"]))
+    if not os.path.exists(LOG_FILE):
+        return {}
+    try:
+        df = pd.read_csv(LOG_FILE)
+        latest = df.sort_values("timestamp").drop_duplicates("asset", keep="last")
+        return dict(zip(latest["asset"], latest["hourly_rate"]))
+    except:
+        return {}
 
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
     funding_data = get_funding_rate()
-    margin_data = get_last_logged_margin_data()
+    margin_data = get_cross_margin_data()
     btc_price = price_data.get("BTC", {}).get("price")
 
     data = []
     for coin in assets:
         price = price_data.get(coin, {}).get("price")
         volume = price_data.get(coin, {}).get("volume")
-        cross_margin = margin_data.get(coin)
+        cross = margin_data.get(coin, {})
+        cross_margin = cross.get("current")
+        next_margin = cross.get("next")
         funding_rate = funding_data.get(coin)
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
 
@@ -150,6 +166,7 @@ def index():
             "price_btc": f"{price_btc:.8f}" if price_btc else "-",
             "volume": f"{volume:,.0f}" if volume else "-",
             "cross_margin": f"{cross_margin:.10f}" if cross_margin else "-",
+            "next_margin": f"{next_margin:.10f}" if next_margin else "-",
             "funding_rate": f"{funding_rate * 100:.8f}%" if funding_rate is not None else "-",
             "trap_radar": "-",
             "oi": "-",
@@ -158,7 +175,6 @@ def index():
         })
 
     return render_template("index.html", data=data)
-
 @app.route("/chart/cross/<asset>")
 def chart_cross(asset):
     try:
