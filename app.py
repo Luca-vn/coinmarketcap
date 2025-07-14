@@ -243,7 +243,7 @@ def run_scheduler():
         log_and_alert()
         log_funding_data()
         log_and_alert_volume()
-        time.sleep(1801)
+        time.sleep(1800)
 
 VOLUME_LOG_FILE = "volume_history.csv"
 VOLUME_ALERT_THRESHOLD = 0.001  # 5%
