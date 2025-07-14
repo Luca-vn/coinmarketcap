@@ -65,8 +65,6 @@ def get_cross_margin_data():
         print("[ERROR] fetch_cross_margin_data:", e)
         return {}
 
-# ... No changes below this line except in index()
-
 def get_funding_rate():
     url = "https://fapi.binance.com/fapi/v1/premiumIndex"
     try:
@@ -124,7 +122,7 @@ def log_and_alert():
                 last_rate = df_asset.iloc[-1]["hourly_rate"]
                 change = ((rate - last_rate) / last_rate) * 100 if last_rate else 0
                 if abs(change) >= 3:
-                    msg = f"â ï¸ Cross Margin Alert\n{asset}: LÃ£i suáº¥t {'tÄng' if change > 0 else 'giáº£m'} {change:.2f}%\nHiá»n táº¡i: {rate:.6f}\nGiá» trÆ°á»c: {last_rate:.6f}"
+                    msg = f"⚠️ Cross Margin Alert\n{asset}: Lãi suất {'tăng' if change > 0 else 'giảm'} {change:.2f}%\nHiện tại: {rate:.6f}\nGiờ trước: {last_rate:.6f}"
                     alert_msgs.append(msg)
 
     for msg in alert_msgs:
@@ -142,6 +140,15 @@ def get_last_logged_margin_data():
         return dict(zip(latest["asset"], latest["hourly_rate"]))
     except:
         return {}
+
+def safe_read_csv(filepath):
+    try:
+        if not os.path.exists(filepath):
+            return pd.DataFrame()
+        return pd.read_csv(filepath)
+    except Exception as e:
+        print(f"[ERROR] Reading CSV {filepath}:", e)
+        return pd.DataFrame()
 
 @app.route("/")
 def index():
@@ -175,6 +182,7 @@ def index():
         })
 
     return render_template("index.html", data=data)
+
 @app.route("/chart/cross/<asset>")
 def chart_cross(asset):
     try:
@@ -211,6 +219,7 @@ def run_scheduler():
     import time
     while True:
         log_and_alert()
+        log_funding_data()
         time.sleep(1801)
 
 if __name__ == "__main__":
