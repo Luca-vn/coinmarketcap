@@ -131,16 +131,6 @@ def log_and_alert():
         except Exception as e:
             print("[Telegram Error]", e)
 
-def get_last_logged_margin_data():
-    if not os.path.exists(LOG_FILE):
-        return {}
-    try:
-        df = pd.read_csv(LOG_FILE)
-        latest = df.sort_values("timestamp").drop_duplicates("asset", keep="last")
-        return dict(zip(latest["asset"], latest["hourly_rate"]))
-    except:
-        return {}
-
 def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
@@ -218,11 +208,14 @@ def download_log():
 def run_scheduler():
     import time
     while True:
-        log_and_alert()
-        log_funding_data()
-        time.sleep(1801)
+        try:
+            log_and_alert()
+            log_funding_data()
+        except Exception as e:
+            print("[LOG ERROR]", e)
+        time.sleep(1800)
 
 if __name__ == "__main__":
-    Thread(target=run_scheduler).start()
+    Thread(target=run_scheduler, daemon=True).start()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
