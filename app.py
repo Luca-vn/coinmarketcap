@@ -91,6 +91,7 @@ def log_funding_data():
     now = datetime.utcnow().strftime("%Y-%m-%d %H:00:00")
     funding_data = get_funding_rate()
     if not funding_data:
+        print("[LOG FUNDING] Không có dữ liệu funding.")
         return
 
     if not os.path.exists(FUNDING_LOG_FILE):
@@ -98,13 +99,20 @@ def log_funding_data():
             f.write("timestamp,asset,funding_rate\n")
 
     with open(FUNDING_LOG_FILE, "a") as f:
-        for asset, rate in funding_data.items():
-            f.write(f"{now},{asset},{rate}\n")
+        for asset in assets:
+            rate = funding_data.get(asset)
+            if rate is not None:
+                f.write(f"{now},{asset},{rate}\n")
+                print(f"[LOG FUNDING] ✅ Đã ghi {asset} - {rate}")
+            else:
+                print(f"[LOG FUNDING] ⚠️ Không có dữ liệu cho {asset}")
 
 def log_and_alert():
     now = datetime.now().strftime("%Y-%m-%d %H:00:00")
     margin_data = get_cross_margin_data()
-    if not margin_data: return
+    if not margin_data:
+        print("[LOG CROSS] Không có dữ liệu cross margin.")
+        return
 
     if not os.path.exists(LOG_FILE):
         with open(LOG_FILE, "w") as f:
@@ -114,23 +122,27 @@ def log_and_alert():
     alert_msgs = []
 
     with open(LOG_FILE, "a") as f:
-        for asset, rates in margin_data.items():
-            rate = rates.get("current")
-            f.write(f"{now},{asset},{rate}\n")
-            df_asset = df_old[df_old["asset"] == asset]
-            if len(df_asset) > 0:
-                last_rate = df_asset.iloc[-1]["hourly_rate"]
-                change = ((rate - last_rate) / last_rate) * 100 if last_rate else 0
-                if abs(change) >= 3:
-                    msg = f"⚠️ Cross Margin Alert\n{asset}: Lãi suất {'tăng' if change > 0 else 'giảm'} {change:.2f}%\nHiện tại: {rate:.6f}\nGiờ trước: {last_rate:.6f}"
-                    alert_msgs.append(msg)
+        for asset in assets:
+            rate = margin_data.get(asset, {}).get("current")
+            if rate is not None:
+                f.write(f"{now},{asset},{rate}\n")
+                print(f"[LOG CROSS] ✅ Đã ghi {asset} - {rate}")
+                df_asset = df_old[df_old["asset"] == asset]
+                if len(df_asset) > 0:
+                    last_rate = df_asset.iloc[-1]["hourly_rate"]
+                    change = ((rate - last_rate) / last_rate) * 100 if last_rate else 0
+                    if abs(change) >= 3:
+                        msg = f"⚠️ Cross Margin Alert\n{asset}: Lãi suất {'tăng' if change > 0 else 'giảm'} {change:.2f}%\nHiện tại: {rate:.6f}\nGiờ trước: {last_rate:.6f}"
+                        alert_msgs.append(msg)
+            else:
+                print(f"[LOG CROSS] ⚠️ Không có dữ liệu cho {asset}")
 
     for msg in alert_msgs:
         try:
             bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
         except Exception as e:
             print("[Telegram Error]", e)
-
+            
 def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
