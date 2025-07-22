@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bot Action Chart - {{ asset }}</title>
+    <title>Bot Action Chart – {{ asset }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -13,18 +13,22 @@
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: {{ labels|safe }},
+                labels: {{ labels|tojson }},
                 datasets: [
                     {
-                        label: '% Price Change (30m)',
-                        data: {{ price_pcts|safe }},
+                        label: '% Price Change',
+                        data: {{ price_pct|tojson }},
+                        borderColor: 'blue',
+                        backgroundColor: 'blue',
                         borderWidth: 2,
                         fill: false,
                         tension: 0.1
                     },
                     {
-                        label: '% Volume Change (30m)',
-                        data: {{ volume_pcts|safe }},
+                        label: '% Volume Change',
+                        data: {{ volume_pct|tojson }},
+                        borderColor: 'orange',
+                        backgroundColor: 'orange',
                         borderWidth: 2,
                         fill: false,
                         tension: 0.1
@@ -35,26 +39,33 @@
                 responsive: true,
                 interaction: {
                     mode: 'index',
-                    intersect: false,
+                    intersect: false
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Bot Action Chart - % Price & Volume Change'
+                    },
+                    legend: {
+                        position: 'top'
+                    }
                 },
                 scales: {
                     y: {
-                        title: { display: true, text: '% Change' },
-                        ticks: { callback: function(value) { return value + '%' } }
+                        title: {
+                            display: true,
+                            text: 'Change (%)'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
                     },
                     x: {
-                        title: { display: true, text: 'Time' }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: true
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ": " + context.formattedValue + "%";
-                            }
+                        title: {
+                            display: true,
+                            text: 'Time'
                         }
                     }
                 }
