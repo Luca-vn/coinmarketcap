@@ -305,9 +305,15 @@ def log_price_volume_data():
                 f.write(f"{now},{asset},{price},{volume}\n")
 
 @app.route("/chart/bot/<asset>")
+@app.route("/chart/bot/<asset>")
 def chart_bot(asset):
     try:
-        df = safe_read_csv("bot_chart_log.csv")
+        df = pd.read_csv("bot_chart_log.csv", encoding="utf-8")
+
+        # Kiểm tra cột 'asset' có tồn tại không
+        if "asset" not in df.columns:
+            return f"Lỗi: File không có cột 'asset'. Cột hiện có: {df.columns.tolist()}"
+
         df_asset = df[df["asset"] == asset].copy()
         if df_asset.empty:
             return f"No bot chart data for {asset}"
@@ -318,16 +324,15 @@ def chart_bot(asset):
         df_asset["volume_pct"] = df_asset["volume"].pct_change() * 100
         df_asset.dropna(inplace=True)
 
-        # Chuyển múi giờ
         df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Bangkok")
         labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
         price_pct = df_asset["price_pct"].round(2).tolist()
         volume_pct = df_asset["volume_pct"].round(2).tolist()
 
         return render_template("chart_bot.html", asset=asset, labels=labels, price_pct=price_pct, volume_pct=volume_pct)
+
     except Exception as e:
         return f"Error generating bot chart: {e}"
-
 
 def run_scheduler():
     import time
