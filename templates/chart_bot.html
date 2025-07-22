@@ -13,7 +13,7 @@
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: {{ timestamps|safe }},
+                labels: {{ labels|safe }},
                 datasets: [
                     {
                         label: '% Price Change (30m)',
