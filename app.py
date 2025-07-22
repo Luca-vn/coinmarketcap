@@ -8,6 +8,7 @@ import csv
 from threading import Thread
 import telegram
 from datetime import datetime, timezone
+from datetime import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 
 FUNDING_LOG_FILE = "funding_history.csv"
