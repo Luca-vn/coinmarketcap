@@ -7,9 +7,13 @@ import pytz
 import csv
 from threading import Thread
 import telegram
+from datetime import datetime, timezone
+from apscheduler.schedulers.background import BackgroundScheduler
 
 FUNDING_LOG_FILE = "funding_history.csv"
 LOG_FILE = "crossmargin_history.csv"
+BOT_LOG_FILE = "bot_chart_log.csv"
+PRICE_LOG_FILE = "price_volume_history.csv"
 
 app = Flask(__name__)
 
@@ -110,7 +114,7 @@ def log_funding_data():
                 print(f"[LOG FUNDING] ⚠️ Không có dữ liệu cho {asset}")
 
 def log_and_alert():
-    now = datetime.now().strftime("%Y-%m-%d %H:00:00")
+    now =  datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     margin_data = get_cross_margin_data()
     if not margin_data:
         print("[LOG CROSS] Không có dữ liệu cross margin.")
@@ -153,11 +157,10 @@ def safe_read_csv(filepath):
     except Exception as e:
         print(f"[ERROR] Reading CSV {filepath}:", e)
         return pd.DataFrame()
-BOT_LOG_FILE = "bot_chart_log.csv"
+
 def log_bot_data():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     price_data = get_binance_price_volume()
-
     file_exists = os.path.exists(BOT_LOG_FILE)
     with open(BOT_LOG_FILE, "a", newline='') as f:
         writer = csv.writer(f)
@@ -171,6 +174,8 @@ def log_bot_data():
                 if price is not None and volume is not None:
                     writer.writerow([now, coin.upper(), price, volume])
                     print(f"[BOT LOG] ✅ {coin.upper()} - Price: {price}, Volume: {volume}")
+                else:
+                    print(f"[BOT LOG] ⚠️ {coin.upper()} skipped")
                     
 def detect_bot_action(price_pct, volume_pct):
     if volume_pct >= 5:
@@ -329,19 +334,15 @@ def chart_bot(asset):
     except Exception as e:
         return f"Error generating bot chart: {e}"
 
-def run_scheduler():
-    import time
-    while True:
-        try:
-            log_and_alert()
-            log_funding_data()
-            log_price_volume_data()  # ✅ Thêm dòng này
-            log_bot_data()  # ✅ Ghi dữ liệu mỗi phút cho chart bot
-        except Exception as e:
-            print("[LOG ERROR]", e)
-        time.sleep(60)
+def schedule_jobs():
+    scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
+    scheduler.add_job(log_and_alert, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=1)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
+    scheduler.add_job(log_bot_data, "interval", minutes=1)
+    scheduler.start()
 
 if __name__ == "__main__":
-    Thread(target=run_scheduler, daemon=True).start()
+    schedule_jobs()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
