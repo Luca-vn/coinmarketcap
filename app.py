@@ -37,7 +37,7 @@ def get_binance_price_volume():
                 if symbol == coin + "USDT":
                     result[coin] = {
                         "price": float(item["lastPrice"]),
-                        "volume": float(item["quoteVolume"])
+                        "volume": float(item["quoteVolume"]),
                         "price_pct": float(item["priceChangePercent"])
                     }
         return result
