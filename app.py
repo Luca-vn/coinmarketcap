@@ -337,7 +337,7 @@ def run_scheduler():
             log_price_volume_data()  # ✅ Thêm dòng này
         except Exception as e:
             print("[LOG ERROR]", e)
-        time.sleep(1800)
+        time.sleep(60)
 
 if __name__ == "__main__":
     Thread(target=run_scheduler, daemon=True).start()
