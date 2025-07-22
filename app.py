@@ -168,6 +168,26 @@ def detect_bot_action(price_pct, volume_pct):
             return "⚠️ Trap"
     return "⚪ Bình thường"
 
+BOT_LOG_FILE = "bot_chart_log.csv"
+
+def log_bot_data():
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    price_data = get_binance_price_volume()
+
+    if not os.path.exists(BOT_LOG_FILE):
+        with open(BOT_LOG_FILE, "w") as f:
+            f.write("timestamp,asset,price,volume\n")
+
+    with open(BOT_LOG_FILE, "a") as f:
+        for coin in assets:
+            info = price_data.get(coin) or price_data.get(f"{coin}USDT")
+            if info:
+                price = info.get("price")
+                volume = info.get("volume")
+                if price is not None and volume is not None:
+                    f.write(f"{now},{coin},{price},{volume}\n")
+                    print(f"[BOT LOG] ✅ {coin} - Price: {price}, Volume: {volume}")
+
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
@@ -305,25 +325,6 @@ def chart_bot(asset):
     except Exception as e:
         return f"Error generating bot chart: {e}"
 
-BOT_LOG_FILE = "bot_chart_log.csv"
-
-def log_bot_data():
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    price_data = get_binance_price_volume()
-
-    if not os.path.exists(BOT_LOG_FILE):
-        with open(BOT_LOG_FILE, "w") as f:
-            f.write("timestamp,asset,price,volume\n")
-
-    with open(BOT_LOG_FILE, "a") as f:
-        for coin in assets:
-            info = price_data.get(coin)
-            if info:
-                price = info.get("price")
-                volume = info.get("volume")
-                if price is not None and volume is not None:
-                    f.write(f"{now},{coin},{price},{volume}\n")
-                    print(f"[BOT LOG] ✅ {coin} - Price: {price}, Volume: {volume}")
 
 def run_scheduler():
     import time
