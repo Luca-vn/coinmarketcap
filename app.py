@@ -41,7 +41,7 @@ def get_binance_price_volume():
                             "price": float(item["lastPrice"]),
                             "volume": float(item["quoteVolume"]),
                             "price_pct": float(item["priceChangePercent"])
-        }
+                        }
 
         return result
     except Exception as e:
@@ -304,7 +304,6 @@ def log_price_volume_data():
             if price and volume:
                 f.write(f"{now},{asset},{price},{volume}\n")
 
-@app.route("/chart/bot/<asset>")
 @app.route("/chart/bot/<asset>")
 def chart_bot(asset):
     try:
