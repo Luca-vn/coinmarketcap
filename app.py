@@ -33,21 +33,19 @@ def get_binance_price_volume():
         result = {}
         for item in data:
             symbol = item["symbol"]
-            for coin in assets:
-                if symbol.endswith("USDT"):
-                    coin_name = symbol.replace("USDT", "")
-                    if coin_name.upper() in assets:
-                        result[coin_name.upper()] = {
-                            "price": float(item["lastPrice"]),
-                            "volume": float(item["quoteVolume"]),
-                            "price_pct": float(item["priceChangePercent"])
-                        }
-
+            if symbol.endswith("USDT"):
+                coin_name = symbol.replace("USDT", "")
+                if coin_name.upper() in assets:
+                    result[coin_name.upper()] = {
+                        "price": float(item["lastPrice"]),
+                        "volume": float(item["quoteVolume"]),
+                        "price_pct": float(item["priceChangePercent"])
+                    }
         return result
     except Exception as e:
         print("[ERROR] get_binance_price_volume:", e)
         return {}
-
+        
 def get_cross_margin_data():
     url = "https://www.binance.com/bapi/margin/v1/public/margin/interest-rate"
     try:
@@ -92,7 +90,7 @@ def get_funding_rate():
         return {}
 
 def log_funding_data():
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:00:00")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     funding_data = get_funding_rate()
     if not funding_data:
         print("[LOG FUNDING] Không có dữ liệu funding.")
@@ -151,29 +149,27 @@ def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
             return pd.DataFrame()
-        return pd.read_csv(filepath)
+        return pd.read_csv(filepath, encoding="utf-8", on_bad_lines="skip")
     except Exception as e:
         print(f"[ERROR] Reading CSV {filepath}:", e)
         return pd.DataFrame()
-
 BOT_LOG_FILE = "bot_chart_log.csv"
-
 def log_bot_data():
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     price_data = get_binance_price_volume()
 
-    if not os.path.exists("bot_chart_log.csv"):
-        with open("bot_chart_log.csv", "w") as f:
-            f.write("timestamp,asset,price,volume\n")
-
-    with open("bot_chart_log.csv", "a") as f:
+    file_exists = os.path.exists(BOT_LOG_FILE)
+    with open(BOT_LOG_FILE, "a", newline='') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["timestamp", "asset", "price", "volume"])
         for coin in assets:
             info = price_data.get(coin.upper())
             if info:
                 price = info.get("price")
                 volume = info.get("volume")
                 if price is not None and volume is not None:
-                    f.write(f"{now},{coin.upper()},{price},{volume}\n")
+                    writer.writerow([now, coin.upper(), price, volume])
                     print(f"[BOT LOG] ✅ {coin.upper()} - Price: {price}, Volume: {volume}")
                     
 def detect_bot_action(price_pct, volume_pct):
@@ -284,7 +280,7 @@ def download_log():
     return send_file(LOG_FILE, as_attachment=True)
 
 def log_price_volume_data():
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:00:00")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     price_data = get_binance_price_volume()
 
     if not price_data:
