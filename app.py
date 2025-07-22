@@ -38,6 +38,7 @@ def get_binance_price_volume():
                     result[coin] = {
                         "price": float(item["lastPrice"]),
                         "volume": float(item["quoteVolume"])
+                        "price_pct": float(item["priceChangePercent"])
                     }
         return result
     except Exception as e:
@@ -151,6 +152,21 @@ def safe_read_csv(filepath):
     except Exception as e:
         print(f"[ERROR] Reading CSV {filepath}:", e)
         return pd.DataFrame()
+        
+def detect_bot_action(price_pct, volume_pct):
+    if volume_pct >= 5:
+        if price_pct >= 0.5:
+            return "🟢 Gom hàng mạnh"
+        elif abs(price_pct) <= 0.3:
+            return "🟡 Gom âm thầm"
+        elif price_pct < 0:
+            return "🔴 Xả có lực"
+    elif volume_pct <= -5:
+        if price_pct < 0:
+            return "⚫ Bỏ mặc"
+        elif price_pct > 0:
+            return "⚠️ Trap"
+    return "⚪ Bình thường"
 
 @app.route("/")
 def index():
@@ -161,8 +177,17 @@ def index():
 
     data = []
     for coin in assets:
-        price = price_data.get(coin, {}).get("price")
-        volume = price_data.get(coin, {}).get("volume")
+        info = price_data.get(coin, {})
+        price = info.get("price")
+        volume = info.get("volume")
+        price_pct = info.get("price_pct", 0)
+
+        avg_volume = volume / 24 if volume else 0
+        hour_volume = avg_volume
+        volume_pct = ((hour_volume - avg_volume) / avg_volume) * 100 if avg_volume else 0
+
+        bot_action = detect_bot_action(price_pct, volume_pct)
+
         cross = margin_data.get(coin, {})
         cross_margin = cross.get("current")
         next_margin = cross.get("next")
@@ -174,17 +199,18 @@ def index():
             "price_usdt": f"{price:,.4f}" if price else "-",
             "price_btc": f"{price_btc:.8f}" if price_btc else "-",
             "volume": f"{volume:,.0f}" if volume else "-",
+            "price_pct": f"{price_pct:.2f}%" if price_pct else "-",
+            "volume_pct": f"{volume_pct:.2f}%" if volume else "-",
+            "bot_action": bot_action,
             "cross_margin": f"{cross_margin:.10f}" if cross_margin else "-",
             "next_margin": f"{next_margin:.10f}" if next_margin else "-",
             "funding_rate": f"{funding_rate * 100:.8f}%" if funding_rate is not None else "-",
-            "trap_radar": "-",
-            "oi": "-",
             "log_view": f"<a href='/chart/cross/{coin}' target='_blank'>Cross</a> | <a href='/chart/funding/{coin}' target='_blank'>Funding</a>",
             "propose": "-"
         })
 
     return render_template("index.html", data=data)
-
+    
 @app.route("/chart/cross/<asset>")
 def chart_cross(asset):
     try:
