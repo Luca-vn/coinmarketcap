@@ -36,12 +36,13 @@ def get_binance_price_volume():
             for coin in assets:
                 if symbol.endswith("USDT"):
                     coin_name = symbol.replace("USDT", "")
-                    if coin_name in assets:
-                        result[coin_name] = {
-                        "price": float(item["lastPrice"]),
-                        "volume": float(item["quoteVolume"]),
-                        "price_pct": float(item["priceChangePercent"])
-                        }
+                    if coin_name.upper() in assets:
+                        result[coin_name.upper()] = {
+                            "price": float(item["lastPrice"]),
+                            "volume": float(item["quoteVolume"]),
+                            "price_pct": float(item["priceChangePercent"])
+        }
+
         return result
     except Exception as e:
         print("[ERROR] get_binance_price_volume:", e)
@@ -167,7 +168,7 @@ def log_bot_data():
 
     with open("bot_chart_log.csv", "a") as f:
         for coin in assets:
-            info = price_data.get(coin) or price_data.get(f"{coin}USDT")
+            info = price_data.get(coin.upper())
             if info:
                 price = info.get("price")
                 volume = info.get("volume")
@@ -211,8 +212,8 @@ def index():
 
         # Lấy dữ liệu log trước đó để tính % thay đổi
         df_coin = df_log[df_log["asset"] == coin]
-        last_price = df_coin["price"].iloc[-1] if not df_coin.empty else None
-        last_volume = df_coin["volume"].iloc[-1] if not df_coin.empty else None
+        last_price = df_coin.sort_values("timestamp").iloc[-2]["price"] if len(df_coin) >= 2 else None
+        last_volume = df_coin.sort_values("timestamp").iloc[-2]["volume"] if len(df_coin) >= 2 else None
 
         if price and last_price:
             price_pct = ((price - last_price) / last_price) * 100
@@ -335,6 +336,7 @@ def run_scheduler():
             log_and_alert()
             log_funding_data()
             log_price_volume_data()  # ✅ Thêm dòng này
+            log_bot_data()  # ✅ Ghi dữ liệu mỗi phút cho chart bot
         except Exception as e:
             print("[LOG ERROR]", e)
         time.sleep(60)
