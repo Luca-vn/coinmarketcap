@@ -193,6 +193,8 @@ def detect_bot_action(price_pct, volume_pct):
             return "⚠️ Trap"
     return "⚪ Bình thường"
 
+# ... các import giữ nguyên ...
+
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
@@ -214,17 +216,23 @@ def index():
 
         # Lấy dữ liệu log trước đó để tính % thay đổi
         df_coin = df_log[df_log["asset"] == coin]
-        last_price = df_coin.sort_values("timestamp").iloc[-2]["price"] if len(df_coin) >= 2 else None
-        last_volume = df_coin.sort_values("timestamp").iloc[-2]["volume"] if len(df_coin) >= 2 else None
+        df_coin = df_coin.sort_values("timestamp")
 
-        if price and last_price:
+        last_price = df_coin.iloc[-2]["price"] if len(df_coin) >= 2 else None
+        last_volume = df_coin.iloc[-2]["volume"] if len(df_coin) >= 2 else None
+
+        try:
+            price = float(price)
+            last_price = float(last_price)
             price_pct = ((price - last_price) / last_price) * 100
-        else:
+        except:
             price_pct = 0
 
-        if volume and last_volume:
+        try:
+            volume = float(volume)
+            last_volume = float(last_volume)
             volume_pct = ((volume - last_volume) / last_volume) * 100
-        else:
+        except:
             volume_pct = 0
 
         bot_action = detect_bot_action(price_pct, volume_pct)
@@ -241,8 +249,8 @@ def index():
             "price_usdt": f"{price:,.4f}" if price else "-",
             "price_btc": f"{price_btc:.8f}" if price_btc else "-",
             "volume": f"{volume:,.0f}" if volume else "-",
-            "price_pct": f"{price_pct:.2f}%" if price else "-",
-            "volume_pct": f"{volume_pct:.2f}%" if volume else "-",
+            "price_pct": f"{price_pct:.2f}%" if last_price else "-",
+            "volume_pct": f"{volume_pct:.2f}%" if last_volume else "-",
             "bot_action": bot_action,
             "cross_margin": f"{cross_margin:.10f}" if cross_margin else "-",
             "next_margin": f"{next_margin:.10f}" if next_margin else "-",
@@ -309,11 +317,8 @@ def log_price_volume_data():
 @app.route("/chart/bot/<asset>")
 def chart_bot(asset):
     try:
-        df = pd.read_csv("bot_chart_log.csv", encoding="utf-8")
-
-        # Kiểm tra cột 'asset' có tồn tại không
-        if "asset" not in df.columns:
-            return f"Lỗi: File không có cột 'asset'. Cột hiện có: {df.columns.tolist()}"
+        # FIX: bỏ qua dòng lỗi (nếu có)
+        df = pd.read_csv("bot_chart_log.csv", encoding="utf-8", on_bad_lines="skip")
 
         df_asset = df[df["asset"] == asset].copy()
         if df_asset.empty:
