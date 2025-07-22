@@ -281,6 +281,50 @@ def log_price_volume_data():
             if price and volume:
                 f.write(f"{now},{asset},{price},{volume}\n")
 
+@app.route("/chart/bot/<asset>")
+def chart_bot(asset):
+    try:
+        df = safe_read_csv("bot_chart_log.csv")
+        df_asset = df[df["asset"] == asset].copy()
+        if df_asset.empty:
+            return f"No bot chart data for {asset}"
+
+        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
+        df_asset.sort_values("timestamp", inplace=True)
+        df_asset["price_pct"] = df_asset["price"].pct_change() * 100
+        df_asset["volume_pct"] = df_asset["volume"].pct_change() * 100
+        df_asset.dropna(inplace=True)
+
+        # Chuyển múi giờ
+        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Bangkok")
+        labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
+        price_pct = df_asset["price_pct"].round(2).tolist()
+        volume_pct = df_asset["volume_pct"].round(2).tolist()
+
+        return render_template("chart_bot.html", asset=asset, labels=labels, price_pct=price_pct, volume_pct=volume_pct)
+    except Exception as e:
+        return f"Error generating bot chart: {e}"
+
+BOT_LOG_FILE = "bot_chart_log.csv"
+
+def log_bot_data():
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    price_data = get_binance_price_volume()
+
+    if not os.path.exists(BOT_LOG_FILE):
+        with open(BOT_LOG_FILE, "w") as f:
+            f.write("timestamp,asset,price,volume\n")
+
+    with open(BOT_LOG_FILE, "a") as f:
+        for coin in assets:
+            info = price_data.get(coin)
+            if info:
+                price = info.get("price")
+                volume = info.get("volume")
+                if price is not None and volume is not None:
+                    f.write(f"{now},{coin},{price},{volume}\n")
+                    print(f"[BOT LOG] ✅ {coin} - Price: {price}, Volume: {volume}")
+
 def run_scheduler():
     import time
     while True:
