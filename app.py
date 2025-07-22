@@ -34,12 +34,14 @@ def get_binance_price_volume():
         for item in data:
             symbol = item["symbol"]
             for coin in assets:
-                if symbol == coin + "USDT":
-                    result[coin] = {
+                if symbol.endswith("USDT"):
+                    coin_name = symbol.replace("USDT", "")
+                    if coin_name in assets:
+                        result[coin_name] = {
                         "price": float(item["lastPrice"]),
                         "volume": float(item["quoteVolume"]),
                         "price_pct": float(item["priceChangePercent"])
-                    }
+                        }
         return result
     except Exception as e:
         print("[ERROR] get_binance_price_volume:", e)
