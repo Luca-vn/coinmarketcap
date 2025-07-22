@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bot Action Chart - {{ asset }}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>Bot Action Chart: {{ asset }}</h2>
+    <canvas id="botChart" height="120"></canvas>
+
+    <script>
+        const ctx = document.getElementById('botChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ timestamps|safe }},
+                datasets: [
+                    {
+                        label: '% Price Change (30m)',
+                        data: {{ price_pcts|safe }},
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: '% Volume Change (30m)',
+                        data: {{ volume_pcts|safe }},
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        title: { display: true, text: '% Change' },
+                        ticks: { callback: function(value) { return value + '%' } }
+                    },
+                    x: {
+                        title: { display: true, text: 'Time' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ": " + context.formattedValue + "%";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
