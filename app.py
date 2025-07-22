@@ -171,6 +171,12 @@ def detect_bot_action(price_pct, volume_pct):
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
+
+    try:
+        df_log = pd.read_csv("price_volume_history.csv")
+    except Exception:
+        df_log = pd.DataFrame()
+
     funding_data = get_funding_rate()
     margin_data = get_cross_margin_data()
     btc_price = price_data.get("BTC", {}).get("price")
@@ -180,11 +186,21 @@ def index():
         info = price_data.get(coin, {})
         price = info.get("price")
         volume = info.get("volume")
-        price_pct = info.get("price_pct", 0)
 
-        avg_volume = volume / 24 if volume else 0
-        hour_volume = avg_volume
-        volume_pct = ((hour_volume - avg_volume) / avg_volume) * 100 if avg_volume else 0
+        # Lấy dữ liệu log trước đó để tính % thay đổi
+        df_coin = df_log[df_log["asset"] == coin]
+        last_price = df_coin["price"].iloc[-1] if not df_coin.empty else None
+        last_volume = df_coin["volume"].iloc[-1] if not df_coin.empty else None
+
+        if price and last_price:
+            price_pct = ((price - last_price) / last_price) * 100
+        else:
+            price_pct = 0
+
+        if volume and last_volume:
+            volume_pct = ((volume - last_volume) / last_volume) * 100
+        else:
+            volume_pct = 0
 
         bot_action = detect_bot_action(price_pct, volume_pct)
 
@@ -192,6 +208,7 @@ def index():
         cross_margin = cross.get("current")
         next_margin = cross.get("next")
         funding_rate = funding_data.get(coin)
+
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
 
         data.append({
@@ -199,7 +216,7 @@ def index():
             "price_usdt": f"{price:,.4f}" if price else "-",
             "price_btc": f"{price_btc:.8f}" if price_btc else "-",
             "volume": f"{volume:,.0f}" if volume else "-",
-            "price_pct": f"{price_pct:.2f}%" if price_pct else "-",
+            "price_pct": f"{price_pct:.2f}%" if price else "-",
             "volume_pct": f"{volume_pct:.2f}%" if volume else "-",
             "bot_action": bot_action,
             "cross_margin": f"{cross_margin:.10f}" if cross_margin else "-",
@@ -243,12 +260,34 @@ def chart_funding(asset):
 def download_log():
     return send_file(LOG_FILE, as_attachment=True)
 
+def log_price_volume_data():
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:00:00")
+    price_data = get_binance_price_volume()
+
+    if not price_data:
+        print("[LOG PRICE/VOLUME] Không có dữ liệu.")
+        return
+
+    file_path = "price_volume_history.csv"
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
+            f.write("timestamp,asset,price,volume\n")
+
+    with open(file_path, "a") as f:
+        for asset in assets:
+            info = price_data.get(asset, {})
+            price = info.get("price")
+            volume = info.get("volume")
+            if price and volume:
+                f.write(f"{now},{asset},{price},{volume}\n")
+
 def run_scheduler():
     import time
     while True:
         try:
             log_and_alert()
             log_funding_data()
+            log_price_volume_data()  # ✅ Thêm dòng này
         except Exception as e:
             print("[LOG ERROR]", e)
         time.sleep(1800)
