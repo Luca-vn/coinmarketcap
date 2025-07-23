@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 assets = [
     "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "SPK", "LTC", "ADA", "AVAX",
-    "TRUMP", "LINK", "WLD", "OP", "ARB", "TON", "BLUR", "MAGIC", "MATIC", "PYTH", "INJ", "TIA",
+    "TRUMP", "LINK", "WLD", "OP", "ARB", "TON", "BLUR", "MAGIC", "PYTH", "INJ", "TIA",
     "ZRO", "SYN", "DYM", "JUP", "MANTA", "ONDO", "LISTA", "ENA", "ZK", "XLM", "BONK", "C",
     "TRX", "FIL", "GMX", "TAO", "EDU"
 ]
@@ -342,10 +342,10 @@ def chart_bot(asset):
 
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
-    scheduler.add_job(log_and_alert, "interval", minutes=15)
-    scheduler.add_job(log_funding_data, "interval", minutes=15)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=15)
-    scheduler.add_job(log_bot_data, "interval", minutes=15)
+    scheduler.add_job(log_and_alert, "interval", hours=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=10)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=10)
+    scheduler.add_job(log_bot_data, "interval", minutes=10)
     scheduler.start()
 
 if __name__ == "__main__":
