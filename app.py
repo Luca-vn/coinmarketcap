@@ -22,7 +22,7 @@ assets = [
     "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "SPK", "LTC", "ADA", "AVAX",
     "TRUMP", "LINK", "WLD", "OP", "ARB", "TON", "BLUR", "MAGIC", "PYTH", "INJ", "TIA",
     "ZRO", "SYN", "DYM", "JUP", "MANTA", "ONDO", "LISTA", "ENA", "ZK", "XLM", "BONK", "C",
-    "TRX", "FIL", "GMX", "TAO", "EDU"
+    "TRX", "FIL", "GMX", "TAO"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
