@@ -21,7 +21,7 @@ app = Flask(__name__)
 assets = [
     "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "SAHARA",
     "SPK", "ADA", "PENGU", "TRX", "PEPE", "BONK", "NEWT", "LTC", "XLM",
-    "DOGE", "1000PEPE", "ENA", "HYPER", "1000BONK", "VINE"
+    "DOGE", "1000PEPE", "ENA", "HYPER"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
