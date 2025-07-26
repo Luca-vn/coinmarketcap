@@ -19,7 +19,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "ENA", "PENGU", "SPK", "ERA", "TAU", "REI", "CKB", "VINE"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "ENA", "PENGU", "SPK", "ERA", "IDEX", "REI", "CKB", "ASR", "PUMP"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
