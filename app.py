@@ -165,15 +165,17 @@ def log_bot_data():
         if not file_exists:
             writer.writerow(["timestamp", "asset", "price", "volume"])
         for coin in assets:
-            info = price_data.get(coin.upper())
-            if info:
-                price = info.get("price")
-                volume = info.get("volume")
-                if price is not None and volume is not None:
-                    writer.writerow([now, coin.upper(), price, volume])
-                    print(f"[BOT LOG] ✅ {coin.upper()} - Price: {price}, Volume: {volume}")
-                else:
-                    print(f"[BOT LOG] ⚠️ {coin.upper()} skipped")
+            info = price_data.get(coin.upper(), {})
+            price = info.get("price")
+            volume = info.get("volume")
+
+            if price is not None and volume is not None:
+                writer.writerow([now, coin.upper(), price, volume])
+                print(f"[BOT LOG] ✅ {coin.upper()} - Price: {price}, Volume: {volume}")
+            else:
+                writer.writerow([now, coin.upper(), "", ""])
+                print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
+
                     
 def detect_bot_action(price_pct, volume_pct):
     if volume_pct >= 5:
@@ -197,7 +199,7 @@ def index():
     price_data = get_binance_price_volume()
 
     try:
-        df_log = pd.read_csv("bot_chart_log.csv", names=["timestamp", "asset", "price", "volume"], header=None)
+        df_log = safe_read_csv("bot_chart_log.csv")
     except Exception:
         df_log = pd.DataFrame()
 
