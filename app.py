@@ -197,7 +197,7 @@ def index():
     price_data = get_binance_price_volume()
 
     try:
-        df_log = pd.read_csv("price_volume_history.csv")
+        df_log = pd.read_csv("bot_chart_log.csv")
     except Exception:
         df_log = pd.DataFrame()
 
