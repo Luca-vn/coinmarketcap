@@ -215,21 +215,26 @@ def index():
         df_coin = df_log[df_log["asset"] == coin]
         df_coin = df_coin.sort_values("timestamp")
 
-        last_price = df_coin.iloc[-2]["price"] if len(df_coin) >= 2 else None
-        last_volume = df_coin.iloc[-2]["volume"] if len(df_coin) >= 2 else None
-
-        try:
-            price = float(price)
-            last_price = float(last_price)
-            price_pct = ((price - last_price) / last_price) * 100
-        except:
+        # Tính phần trăm thay đổi giá
+        if len(df_coin) >= 2:
+            try:
+                last_price = float(df_coin.iloc[-2]["price"])
+                price = float(price)
+                price_pct = ((price - last_price) / last_price) * 100 if last_price else 0
+            except:
+                price_pct = 0
+        else:
             price_pct = 0
 
-        try:
-            volume = float(volume)
-            last_volume = float(last_volume)
-            volume_pct = ((volume - last_volume) / last_volume) * 100
-        except:
+        # Tính phần trăm thay đổi volume
+        if len(df_coin) >= 2:
+            try:
+                last_volume = float(df_coin.iloc[-2]["volume"])
+                volume = float(volume)
+                volume_pct = ((volume - last_volume) / last_volume) * 100 if last_volume else 0
+            except:
+                volume_pct = 0
+        else:
             volume_pct = 0
 
         bot_action = detect_bot_action(price_pct, volume_pct)
@@ -340,9 +345,9 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=10)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=10)
-    scheduler.add_job(log_bot_data, "interval", minutes=10)
+    scheduler.add_job(log_funding_data, "interval", minutes=1)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
+    scheduler.add_job(log_bot_data, "interval", minutes=1)
     scheduler.start()
 
 if __name__ == "__main__":
