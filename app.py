@@ -19,7 +19,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "ENA", "PENGU", "SPK", "ERA", "IDEX", "LINK", "CKB", "ASR", "PUMP"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "ENA", "PENGU", "SPK", "ERA", "IDEX", "LINK", "CKB", "ASR", "LINK"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
@@ -366,9 +366,9 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=1)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
-    scheduler.add_job(log_bot_data, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
     scheduler.start()
 
 if __name__ == "__main__":
