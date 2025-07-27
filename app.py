@@ -175,24 +175,43 @@ def log_bot_data():
             else:
                 writer.writerow([now, coin.upper(), "", ""])
                 print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
-
-                    
+   
 def detect_bot_action(price_pct, volume_pct):
-    if volume_pct >= 5:
-        if price_pct >= 0.5:
-            return "🟢 Gom hàng mạnh"
-        elif abs(price_pct) <= 0.3:
-            return "🟡 Gom âm thầm"
-        elif price_pct < 0:
-            return "🔴 Xả có lực"
-    elif volume_pct <= -5:
-        if price_pct < 0:
-            return "⚫ Bỏ mặc"
-        elif price_pct > 0:
-            return "⚠️ Trap"
-    return "⚪ Bình thường"
+    # Xử lý trường hợp thiếu dữ liệu
+    if price_pct is None or volume_pct is None:
+        return "⚪ Không rõ"
 
-# ... các import giữ nguyên ...
+    # Trap kinh điển: Giá tăng, volume giảm
+    if price_pct > 0.3 and volume_pct < -5:
+        return "⚠️ Trap"
+
+    # Xả có lực: Giá giảm mạnh, volume tăng mạnh
+    if price_pct < -0.3 and volume_pct > 5:
+        return "🔴 Xả mạnh"
+
+    # Bỏ mặc: Giá giảm, volume cũng giảm
+    if price_pct < -0.3 and volume_pct < -3:
+        return "⚫ Bỏ mặc"
+
+    # Gom âm thầm: Giá gần như không đổi, volume tăng vừa
+    if abs(price_pct) <= 0.1 and volume_pct >= 3:
+        return "🟡 Gom âm thầm"
+
+    # Gom mạnh: Giá tăng ≥ 0.2%, volume tăng ≥ 5%
+    if price_pct >= 0.2 and volume_pct >= 5:
+        return "🟢 Gom mạnh"
+
+    # Rung lắc hoặc phân phối: Giá giảm nhẹ, volume tăng vừa
+    if -0.2 <= price_pct <= -0.1 and 3 <= volume_pct <= 7:
+        return "🔸 Rung lắc"
+
+    # Nếu biến động < 0.1% cả 2 chiều → coi là bình thường
+    if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
+        return "⚪ Bình thường"
+
+    # Mặc định
+    return "⚪ Không rõ"
+
 
 @app.route("/")
 def index():
