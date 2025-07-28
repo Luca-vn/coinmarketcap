@@ -175,7 +175,34 @@ def log_bot_data():
             else:
                 writer.writerow([now, coin.upper(), "", ""])
                 print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
-   
+        # Gửi alert nếu bot_action đáng chú ý
+        for coin in assets:
+            info = price_data.get(coin.upper(), {})
+            price = info.get("price")
+            volume = info.get("volume")
+
+            if price is not None and volume is not None:
+                try:
+                    df_coin = safe_read_csv(BOT_LOG_FILE)
+                    df_coin = df_coin[df_coin["asset"] == coin]
+                    df_coin = df_coin.sort_values("timestamp")
+                    if len(df_coin) >= 2:
+                        last_price = float(df_coin.iloc[-2]["price"])
+                        last_volume = float(df_coin.iloc[-2]["volume"])
+                        price_pct = ((price - last_price) / last_price) * 100 if last_price else 0
+                        volume_pct = ((volume - last_volume) / last_volume) * 100 if last_volume else 0
+                        bot_action = detect_bot_action(price_pct, volume_pct)
+
+                        if bot_action not in ["⚪ Không rõ", "⚪ Bình thường"]:
+                            msg = f"📊 [BOT ACTION] {coin}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                            try:
+                                bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                            except Exception as e:
+                                print("[Telegram BotAction ERROR]", e)
+                except Exception as e:
+                    print(f"[BotAction Analysis ERROR] {coin}:", e)
+
+
 def detect_bot_action(price_pct, volume_pct):
     # Xử lý trường hợp thiếu dữ liệu
     if price_pct is None or volume_pct is None:
@@ -366,9 +393,9 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=30)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_data, "interval", minutes=30)
+    scheduler.add_job(log_funding_data, "interval", minutes=1)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
+    scheduler.add_job(log_bot_data, "interval", minutes=1)
     scheduler.start()
 
 if __name__ == "__main__":
