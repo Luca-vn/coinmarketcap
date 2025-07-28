@@ -165,6 +165,7 @@ def log_bot_data():
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["timestamp", "asset", "price", "volume"])
+        
         for coin in assets:
             info = price_data.get(coin.upper(), {})
             price = info.get("price")
@@ -179,6 +180,8 @@ def log_bot_data():
     # Gửi alert nếu bot_action đáng chú ý
     try:
         df = safe_read_csv(BOT_LOG_FILE)
+        df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa để khớp
+        
         for coin in assets:
             df_coin = df[df["asset"] == coin.upper()].copy()
             df_coin = df_coin.sort_values("timestamp")
@@ -393,9 +396,9 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=1)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
-    scheduler.add_job(log_bot_data, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
