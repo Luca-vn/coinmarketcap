@@ -19,7 +19,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "ENA", "PENGU", "SPK", "ERA", "ZORA", "LINK", "CKB", "ASR", "LINK", "ADA","OP"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
@@ -393,12 +393,29 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=1)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
-    scheduler.add_job(log_bot_data, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
     scheduler.start()
+    
+def test_telegram():
+    TEST_MESSAGE = "✅ Luca test gửi tin nhắn Telegram thành công rồi nè!"
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": TEST_MESSAGE
+    }
+    try:
+        response = requests.post(url, data=payload)
+        if response.status_code == 200:
+            print("✅ Gửi Telegram test thành công!")
+        else:
+            print(f"❌ Lỗi khi gửi Telegram: {response.status_code}, {response.text}")
+    except Exception as e:
+        print("❌ Lỗi kết nối Telegram:", e)
 
 if __name__ == "__main__":
+    test_telegram()
     schedule_jobs()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
