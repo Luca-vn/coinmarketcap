@@ -335,7 +335,8 @@ def chart_funding(asset):
         df_asset = df[df["asset"] == asset].tail(24).copy()
         if df_asset.empty:
             return f"No funding data for {asset}"
-        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"]).dt.tz_localize("UTC").dt.tz_convert("Asia/Bangkok")
+        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
+        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
         labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
         values = df_asset["funding_rate"].tolist()
         return render_template("chart.html", asset=asset, labels=labels, values=values)
