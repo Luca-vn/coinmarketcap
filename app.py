@@ -370,29 +370,52 @@ def log_price_volume_data():
 @app.route("/chart/bot/<asset>")
 def chart_bot(asset):
     try:
-        # FIX: bỏ qua dòng lỗi (nếu có)
-        df = pd.read_csv("bot_chart_log.csv", encoding="utf-8", on_bad_lines="skip")
-
-        df_asset = df[df["asset"] == asset].copy()
-        if df_asset.empty:
+        df = safe_read_csv("bot_chart_log.csv")
+        df = df[df["asset"] == asset].copy()
+        if df.empty:
             return f"No bot chart data for {asset}"
 
-        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
-        df_asset.sort_values("timestamp", inplace=True)
-        df_asset["price_pct"] = df_asset["price"].pct_change() * 100
-        df_asset["volume_pct"] = df_asset["volume"].pct_change() * 100
-        df_asset.dropna(inplace=True)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df.sort_values("timestamp", inplace=True)
+        df["price_pct"] = df["price"].pct_change() * 100
+        df["volume_pct"] = df["volume"].pct_change() * 100
 
-        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Bangkok")
-        labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
-        price_pct = df_asset["price_pct"].round(2).tolist()
-        volume_pct = df_asset["volume_pct"].round(2).tolist()
+        # Logic đánh dấu bot action
+        def classify_bot_action(row):
+            p = row["price_pct"]
+            v = row["volume_pct"]
+            if pd.isna(p) or pd.isna(v):
+                return "None"
+            if v >= 3 and p >= 0.5:
+                return "Gom 🔵"
+            elif v >= 3 and p <= -0.5:
+                return "Xả 🔴"
+            elif 0 < p < 0.5 and 0 < v < 3:
+                return "Gom âm thầm 🌕"
+            elif -0.5 < p < 0 and 0 < v < 3:
+                return "Xả âm thầm 🔥"
+            elif abs(v) > 5 and abs(p) <= 0.3:
+                return "Trap 🟡"
+            else:
+                return "Không rõ"
 
-        return render_template("chart_bot.html", asset=asset, labels=labels, price_pct=price_pct, volume_pct=volume_pct)
+        df["bot_action"] = df.apply(classify_bot_action, axis=1)
 
+        # Truyền dữ liệu sang chart template
+        timestamps = df["timestamp"].astype(str).tolist()
+        price_pct = df["price_pct"].round(2).tolist()
+        volume_pct = df["volume_pct"].round(2).tolist()
+        bot_actions = df["bot_action"].tolist()
+
+        return render_template("chart_bot.html",
+                               asset=asset,
+                               timestamps=timestamps,
+                               price_pct=price_pct,
+                               volume_pct=volume_pct,
+                               bot_actions=bot_actions)
     except Exception as e:
-        return f"Error generating bot chart: {e}"
-
+        return f"Lỗi chart bot: {str(e)}"
+        
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
