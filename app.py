@@ -380,6 +380,7 @@ def chart_bot(asset):
         df.sort_values("timestamp", inplace=True)
         df["price_pct"] = df["price"].pct_change() * 100
         df["volume_pct"] = df["volume"].pct_change() * 100
+        labels = df["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
 
         # Logic đánh dấu bot action
         def classify_bot_action(row):
@@ -410,7 +411,7 @@ def chart_bot(asset):
 
         return render_template("chart_bot.html",
                                asset=asset,
-                               timestamps=timestamps,
+                               timestamps=labels,
                                price_pct=price_pct,
                                volume_pct=volume_pct,
                                bot_actions=bot_actions)
