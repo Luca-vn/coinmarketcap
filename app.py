@@ -377,7 +377,7 @@ def chart_bot(asset):
 
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df["timestamp"] = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
-        #df.sort_values("timestamp", inplace=True)
+        df.sort_values("timestamp", inplace=True)
         df["price_pct"] = df["price"].pct_change() * 100
         df["volume_pct"] = df["volume"].pct_change() * 100
         labels = df["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
@@ -421,9 +421,9 @@ def chart_bot(asset):
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=3)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=3)
-    scheduler.add_job(log_bot_data, "interval", minutes=3)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
