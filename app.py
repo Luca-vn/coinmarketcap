@@ -335,8 +335,7 @@ def chart_funding(asset):
         df_asset = df[df["asset"] == asset].tail(24).copy()
         if df_asset.empty:
             return f"No funding data for {asset}"
-        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
-        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
+        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"]).dt.tz_localize("UTC").dt.tz_convert("Asia/Bangkok")
         labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
         values = df_asset["funding_rate"].tolist()
         return render_template("chart.html", asset=asset, labels=labels, values=values)
@@ -377,6 +376,7 @@ def chart_bot(asset):
             return f"No bot chart data for {asset}"
 
         df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
         df.sort_values("timestamp", inplace=True)
         df["price_pct"] = df["price"].pct_change() * 100
         df["volume_pct"] = df["volume"].pct_change() * 100
