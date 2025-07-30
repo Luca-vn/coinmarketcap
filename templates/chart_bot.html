@@ -14,13 +14,29 @@
         const volumeData = {{ volume_pct|tojson }};
         const botActions = {{ bot_actions|tojson }};
 
-        const customPointStyles = botActions.map(action => {
-            if (action.includes("🔵")) return 'circle';
-            if (action.includes("🔴")) return 'rectRot';
-            if (action.includes("🌕")) return 'triangle';
-            if (action.includes("🔥")) return 'cross';
-            if (action.includes("🟡")) return 'star';
-            return 'line';
+        const pointStyles = [];
+        const pointColors = [];
+
+        botActions.forEach(action => {
+            if (action.includes("🔵")) {
+                pointStyles.push("circle");
+                pointColors.push("green");
+            } else if (action.includes("🔴")) {
+                pointStyles.push("rectRot");
+                pointColors.push("red");
+            } else if (action.includes("🌕")) {
+                pointStyles.push("triangle");
+                pointColors.push("gold");
+            } else if (action.includes("🔥")) {
+                pointStyles.push("cross");
+                pointColors.push("black");
+            } else if (action.includes("🟡")) {
+                pointStyles.push("star");
+                pointColors.push("gray");
+            } else {
+                pointStyles.push("line");
+                pointColors.push("blue");
+            }
         });
 
         const ctx = document.getElementById('botChart').getContext('2d');
@@ -33,16 +49,17 @@
                     data: priceData,
                     borderColor: 'blue',
                     backgroundColor: 'blue',
-                    tension: 0.2,
-                    pointStyle: customPointStyles,
+                    tension: 0.1,
+                    pointStyle: pointStyles,
                     pointRadius: 6,
-                    pointHoverRadius: 8
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: pointColors
                 }, {
                     label: '% Volume Change',
                     data: volumeData,
                     borderColor: 'orange',
                     backgroundColor: 'orange',
-                    tension: 0.2,
+                    tension: 0.1,
                     borderDash: [5, 5],
                     pointRadius: 3
                 }]
