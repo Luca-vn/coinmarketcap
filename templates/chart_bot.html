@@ -1,71 +1,77 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Bot Action Chart – {{ asset }}</title>
+    <title>Bot Action Chart - {{ asset.upper() }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h2>Bot Action Chart: {{ asset }}</h2>
-    <canvas id="botChart" height="120"></canvas>
+    <h2>Biểu đồ Bot Action: {{ asset.upper() }}</h2>
+    <canvas id="botChart" width="1000" height="400"></canvas>
 
     <script>
+        const labels = {{ timestamps|tojson }};
+        const priceData = {{ price_pct|tojson }};
+        const volumeData = {{ volume_pct|tojson }};
+        const botActions = {{ bot_actions|tojson }};
+
+        const customPointStyles = botActions.map(action => {
+            if (action.includes("🔵")) return 'circle';
+            if (action.includes("🔴")) return 'rectRot';
+            if (action.includes("🌕")) return 'triangle';
+            if (action.includes("🔥")) return 'cross';
+            if (action.includes("🟡")) return 'star';
+            return 'line';
+        });
+
         const ctx = document.getElementById('botChart').getContext('2d');
-        const chart = new Chart(ctx, {
+        const botChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: {{ labels|tojson }},
-                datasets: [
-                    {
-                        label: '% Price Change',
-                        data: {{ price_pct|tojson }},
-                        borderColor: 'blue',
-                        backgroundColor: 'blue',
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.1
-                    },
-                    {
-                        label: '% Volume Change',
-                        data: {{ volume_pct|tojson }},
-                        borderColor: 'orange',
-                        backgroundColor: 'orange',
-                        borderWidth: 2,
-                        fill: false,
-                        tension: 0.1
-                    }
-                ]
+                labels: labels,
+                datasets: [{
+                    label: '% Price Change',
+                    data: priceData,
+                    borderColor: 'blue',
+                    backgroundColor: 'blue',
+                    tension: 0.2,
+                    pointStyle: customPointStyles,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }, {
+                    label: '% Volume Change',
+                    data: volumeData,
+                    borderColor: 'orange',
+                    backgroundColor: 'orange',
+                    tension: 0.2,
+                    borderDash: [5, 5],
+                    pointRadius: 3
+                }]
             },
             options: {
                 responsive: true,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
                 plugins: {
-                    title: {
-                        display: true,
-                        text: 'Bot Action Chart - % Price & Volume Change'
+                    tooltip: {
+                        callbacks: {
+                            afterBody: function(context) {
+                                let index = context[0].dataIndex;
+                                return 'Bot Action: ' + botActions[index];
+                            }
+                        }
                     },
                     legend: {
                         position: 'top'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Phân tích hành vi bot: ' + '{{ asset.upper() }}'
                     }
                 },
                 scales: {
                     y: {
+                        beginAtZero: false,
                         title: {
                             display: true,
-                            text: 'Change (%)'
-                        },
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Time'
+                            text: '% Change'
                         }
                     }
                 }
