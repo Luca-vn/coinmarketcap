@@ -17,22 +17,29 @@
         const pointStyles = [];
         const pointColors = [];
 
+        let countGom = 0, countXa = 0, countGomAm = 0, countXaAm = 0, countTrap = 0;
+
         botActions.forEach(action => {
             if (action.includes("🔵")) {
                 pointStyles.push("circle");
                 pointColors.push("green");
+                countGom++;
             } else if (action.includes("🔴")) {
                 pointStyles.push("rectRot");
                 pointColors.push("red");
+                countXa++;
             } else if (action.includes("🌕")) {
                 pointStyles.push("triangle");
                 pointColors.push("gold");
+                countGomAm++;
             } else if (action.includes("🔥")) {
                 pointStyles.push("cross");
                 pointColors.push("black");
+                countXaAm++;
             } else if (action.includes("🟡")) {
                 pointStyles.push("star");
                 pointColors.push("gray");
+                countTrap++;
             } else {
                 pointStyles.push("line");
                 pointColors.push("blue");
@@ -94,6 +101,16 @@
                 }
             }
         });
+
+        // Hiển thị thống kê dưới chart
+        document.write("<div style='margin-top:20px;'>");
+        document.write("<b>Thống kê hành vi bot:</b><br>");
+        document.write("🔵 Gom mạnh: " + countGom + " lần<br>");
+        document.write("🔴 Xả mạnh: " + countXa + " lần<br>");
+        document.write("🌕 Gom âm thầm: " + countGomAm + " lần<br>");
+        document.write("🔥 Xả âm thầm: " + countXaAm + " lần<br>");
+        document.write("🟡 Trap: " + countTrap + " lần<br>");
+        document.write("</div>");
     </script>
 </body>
 </html>
