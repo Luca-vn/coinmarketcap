@@ -377,7 +377,7 @@ def chart_bot(asset):
 
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df["timestamp"] = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
-        df.sort_values("timestamp", inplace=True)
+        #df.sort_values("timestamp", inplace=True)
         df["price_pct"] = df["price"].pct_change() * 100
         df["volume_pct"] = df["volume"].pct_change() * 100
         labels = df["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
