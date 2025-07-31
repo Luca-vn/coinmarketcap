@@ -199,10 +199,14 @@ def log_bot_data():
 
                     if bot_action not in ["⚪ Không rõ", "⚪ Bình thường"]:
                         msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
-                        print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
-                except Exception as e:
-                    print(f"[BotAction Analysis ERROR] {coin.upper()}:", e)
+                        try:
+                            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                            print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
+                        except Exception as e:
+                            print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
+                    else:
+                        print(f"[BOT ACTION] {coin.upper()} bình thường – không gửi Telegram.")
+
     except Exception as e:
         print("[BOT LOG Read ERROR]", e)
 
