@@ -340,14 +340,18 @@ def index():
         else:
             volume_pct = 0
 
-        bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
+        # ✅ Gán các biến phụ trợ trước khi gọi hàm bot_action_v2
         cross = margin_data.get(coin, {})
         cross_margin = cross.get("current")
         next_margin = cross.get("next")
         funding_rate = funding_data.get(coin)
+        order_book_bias = get_order_book_bias(coin + "USDT")
+
+        # ✅ Gọi bot_action_v2
+        bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
 
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
-        order_book_bias = get_order_book_bias(coin + "USDT")
+
         data.append({
             "asset": coin,
             "price_usdt": f"{price:,.4f}" if price else "-",
