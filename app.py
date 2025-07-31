@@ -257,27 +257,27 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
 
         # 🔴 Xả mạnh
         if price_pct < -0.07 and volume_pct > 0.8:
-            if funding_rate and funding_rate > 0.01 and order_book_bias == "🔴 Cung mạnh":
+            if (not funding_rate or funding_rate > 0) and (not order_book_bias or order_book_bias == "🔴 Cung mạnh"):
                 return "🔴 Xả mạnh"
 
         # 🔵 Gom mạnh
         if price_pct > 0.07 and volume_pct > 0.8:
-            if funding_rate and funding_rate < -0.005 and order_book_bias == "🟢 Cầu mạnh":
+            if (not funding_rate or funding_rate < 0) and (not order_book_bias or order_book_bias == "🟢 Cầu mạnh"):
                 return "🔵 Gom mạnh"
 
         # 🟡 Gom âm thầm
         if abs(price_pct) <= 0.05 and volume_pct > 0.6:
-            if funding_rate and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
+            if (funding_rate is None or funding_rate < 0) and (order_book_bias in [None, "🟢 Cầu mạnh", "⚪ Cân bằng"]):
                 return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
         if abs(price_pct) <= 0.05 and volume_pct > 0.6:
-            if funding_rate and funding_rate > 0 and order_book_bias in ["🔴 Cung mạnh", "⚪ Cân bằng"]:
+            if (funding_rate is None or funding_rate > 0) and (order_book_bias in [None, "🔴 Cung mạnh", "⚪ Cân bằng"]):
                 return "🖤 Xả âm thầm"
 
         # 📋 Trap tăng
-        if price_pct > 0.1 and volume_pct < 0:
-            if funding_rate and funding_rate > 0.01 and order_book_bias == "🔴 Cung mạnh":
+        if price_pct > 0.1 and volume_pct < 0.1:
+            if (funding_rate and funding_rate > 0.005) and (order_book_bias == "🔴 Cung mạnh" or order_book_bias is None):
                 return "📋 Trap"
 
         # 💣 Áp lực Long
