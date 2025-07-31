@@ -178,37 +178,38 @@ def log_bot_data():
                 print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
 
     # Gửi alert nếu bot_action đáng chú ý
-    try:
-        df = safe_read_csv(BOT_LOG_FILE)
-        df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa để khớp
-        
-        for coin in assets:
-            df_coin = df[df["asset"] == coin.upper()].copy()
-            df_coin = df_coin.sort_values("timestamp")
-            if len(df_coin) >= 2:
+    # Gửi alert nếu bot_action – GỬI TẤT CẢ HÀNH VI
+try:
+    df = safe_read_csv(BOT_LOG_FILE)
+    df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa
+
+    for coin in assets:
+        df_coin = df[df["asset"] == coin.upper()].copy()
+        df_coin = df_coin.sort_values("timestamp")
+        if len(df_coin) >= 2:
+            try:
+                last_price = float(df_coin.iloc[-2]["price"])
+                last_volume = float(df_coin.iloc[-2]["volume"])
+                current_price = float(df_coin.iloc[-1]["price"])
+                current_volume = float(df_coin.iloc[-1]["volume"])
+                price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
+                volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
+                bot_action = detect_bot_action(price_pct, volume_pct)
+
+                print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
+
+                # ✅ Gửi tất cả hành vi luôn
+                msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
                 try:
-                    last_price = float(df_coin.iloc[-2]["price"])
-                    last_volume = float(df_coin.iloc[-2]["volume"])
-                    current_price = float(df_coin.iloc[-1]["price"])
-                    current_volume = float(df_coin.iloc[-1]["volume"])
-                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-                    bot_action = detect_bot_action(price_pct, volume_pct)
+                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                    print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
+                except Exception as e:
+                    print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
 
-                    print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
-
-                    if bot_action not in ["⚪ Không rõ", "⚪ Bình thường"]:
-                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                        try:
-                            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
-                            print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
-                        except Exception as e:
-                            print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
-                    else:
-                        print(f"[BOT ACTION] {coin.upper()} bình thường – không gửi Telegram.")
-
-    except Exception as e:
-        print("[BOT LOG Read ERROR]", e)
+            except Exception as e:
+                print(f"[BotAction Analysis ERROR] {coin.upper()}:", e)
+except Exception as e:
+    print("[BOT LOG Read ERROR]", e)
 
 def detect_bot_action(price_pct, volume_pct):
     # Xử lý trường hợp thiếu dữ liệu
