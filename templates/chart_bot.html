@@ -21,28 +21,28 @@
 
         botActions.forEach(action => {
             if (action.includes("🔵")) {
-                pointStyles.push("circle");
-                pointColors.push("green");
+                pointStyles.push("triangle");
+                pointColors.push("blue");
                 countGom++;
             } else if (action.includes("🔴")) {
-                pointStyles.push("rectRot");
+                pointStyles.push("triangle");
                 pointColors.push("red");
                 countXa++;
             } else if (action.includes("🌕")) {
                 pointStyles.push("triangle");
-                pointColors.push("gold");
+                pointColors.push("green");
                 countGomAm++;
             } else if (action.includes("🔥")) {
-                pointStyles.push("cross");
-                pointColors.push("black");
+                pointStyles.push("triangle");
+                pointColors.push("orange");
                 countXaAm++;
             } else if (action.includes("🟡")) {
-                pointStyles.push("star");
-                pointColors.push("gray");
+                pointStyles.push("triangle");
+                pointColors.push("yellow");
                 countTrap++;
             } else {
-                pointStyles.push("line");
-                pointColors.push("blue");
+                pointStyles.push("triangle");
+                pointColors.push("gray");
             }
         });
 
