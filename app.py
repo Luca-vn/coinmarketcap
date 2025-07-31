@@ -233,7 +233,7 @@ try:
                 current_volume = float(df_coin.iloc[-1]["volume"])
                 price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
                 volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-                bot_action = detect_bot_action(price_pct, volume_pct)
+                bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
 
                 print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
 
@@ -250,42 +250,50 @@ try:
 except Exception as e:
     print("[BOT LOG Read ERROR]", e)
 
-def detect_bot_action(price_pct, volume_pct):
-    # Xử lý trường hợp thiếu dữ liệu
-    if price_pct is None or volume_pct is None:
+def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
+    try:
+        if price_pct is None or volume_pct is None:
+            return "⚪ Không rõ"
+
+        # 🔴 Xả có lực
+        if price_pct < -0.3 and volume_pct > 5:
+            if funding_rate and funding_rate > 0.03 and order_book_bias == "🔴 Cung mạnh":
+                return "🔴 Xả mạnh"
+
+        # ⚠️ Trap tăng
+        if price_pct > 0.3 and volume_pct < -5:
+            if funding_rate and funding_rate > 0.03 and order_book_bias == "🔴 Cung mạnh":
+                return "⚠️ Trap tăng"
+
+        # 💰 Gom mạnh
+        if price_pct > 0.2 and volume_pct > 5:
+            if funding_rate and funding_rate < -0.01 and order_book_bias == "🟢 Cầu mạnh":
+                return "💰 Gom mạnh"
+
+        # 🟡 Gom âm thầm
+        if abs(price_pct) <= 0.1 and volume_pct >= 3:
+            if funding_rate and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
+                return "🟡 Gom âm thầm"
+
+        # 💣 Áp lực Long
+        if funding_rate and funding_rate > 0.05 and cross_margin and cross_margin > 0.00015:
+            return "💣 Áp lực Long"
+
+        # 🔸 Rung lắc
+        if -0.2 <= price_pct <= -0.1 and 3 <= volume_pct <= 7:
+            return "🔸 Rung lắc"
+
+        # ⚫ Bỏ mặc
+        if price_pct < -0.3 and volume_pct < -3:
+            return "⚫ Bỏ mặc"
+
+        # ⚪ Biến động nhẹ
+        if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
+            return "⚪ Bình thường"
+
         return "⚪ Không rõ"
-
-    # Trap kinh điển: Giá tăng, volume giảm
-    if price_pct > 0.3 and volume_pct < -5:
-        return "⚠️ Trap"
-
-    # Xả có lực: Giá giảm mạnh, volume tăng mạnh
-    if price_pct < -0.3 and volume_pct > 5:
-        return "🔴 Xả mạnh"
-
-    # Bỏ mặc: Giá giảm, volume cũng giảm
-    if price_pct < -0.3 and volume_pct < -3:
-        return "⚫ Bỏ mặc"
-
-    # Gom âm thầm: Giá gần như không đổi, volume tăng vừa
-    if abs(price_pct) <= 0.1 and volume_pct >= 3:
-        return "🟡 Gom âm thầm"
-
-    # Gom mạnh: Giá tăng ≥ 0.2%, volume tăng ≥ 5%
-    if price_pct >= 0.2 and volume_pct >= 5:
-        return "🟢 Gom mạnh"
-
-    # Rung lắc hoặc phân phối: Giá giảm nhẹ, volume tăng vừa
-    if -0.2 <= price_pct <= -0.1 and 3 <= volume_pct <= 7:
-        return "🔸 Rung lắc"
-
-    # Nếu biến động < 0.1% cả 2 chiều → coi là bình thường
-    if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
-        return "⚪ Bình thường"
-
-    # Mặc định
-    return "⚪ Không rõ"
-
+    except:
+        return "❓Không xác định"
 
 @app.route("/")
 def index():
@@ -332,8 +340,7 @@ def index():
         else:
             volume_pct = 0
 
-        bot_action = detect_bot_action(price_pct, volume_pct)
-
+        bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
         cross = margin_data.get(coin, {})
         cross_margin = cross.get("current")
         next_margin = cross.get("next")
@@ -481,7 +488,7 @@ def log_bot_action():
                     price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
                     volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
 
-                    bot_action = detect_bot_action(price_pct, volume_pct)
+                    bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
 
                     # ✅ Chỉ gửi các hành vi đặc biệt
                     if any(keyword in bot_action for keyword in ["🔵", "🔴", "🟡", "🖤", "📋"]):
