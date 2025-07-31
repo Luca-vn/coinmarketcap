@@ -21,7 +21,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP", "TRX"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
@@ -477,10 +477,10 @@ def log_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=1)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
-    scheduler.add_job(log_bot_data, "interval", minutes=1)
-    scheduler.add_job(log_bot_action, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_action, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
