@@ -252,37 +252,37 @@ except Exception as e:
 
 def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
         try:
-        if price_pct is None or volume_pct is None:
-            return "⚪ Không rõ"
+            if price_pct is None or volume_pct is None:
+                return "⚪ Không rõ"
 
         # 🔵 Gom mạnh
-        if price_pct > 0.5 and volume_pct > 3:
-            return "🔵 Gom mạnh"
+            if price_pct > 0.5 and volume_pct > 3:
+                return "🔵 Gom mạnh"
 
         # 🔴 Xả mạnh
-        if price_pct < -0.5 and volume_pct > 3:
-            return "🔴 Xả mạnh"
+            if price_pct < -0.5 and volume_pct > 3:
+                return "🔴 Xả mạnh"
 
         # 🟡 Gom âm thầm
-        if -0.2 <= price_pct <= 0.2 and volume_pct > 2:
-            return "🟡 Gom âm thầm"
+            if -0.2 <= price_pct <= 0.2 and volume_pct > 2:
+                return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
-        if -0.2 <= price_pct <= 0.2 and volume_pct < -2:
-            return "🖤 Xả âm thầm"
+            if -0.2 <= price_pct <= 0.2 and volume_pct < -2:
+                return "🖤 Xả âm thầm"
 
         # 📋 Trap
-        if abs(price_pct) > 0.5 and abs(volume_pct) < 0.3:
-            return "📋 Trap"
+            if abs(price_pct) > 0.5 and abs(volume_pct) < 0.3:
+                return "📋 Trap"
 
         # ⚪ Bình thường
-        if abs(price_pct) < 0.2 and abs(volume_pct) < 0.5:
-            return "⚪ Bình thường"
+            if abs(price_pct) < 0.2 and abs(volume_pct) < 0.5:
+                return "⚪ Bình thường"
 
-        return "⚪ Không rõ"
+            return "⚪ Không rõ"
 
-    except:
-        return "❓Không xác định"
+        except:
+            return "❓Không xác định"
         
 @app.route("/")
 def index():
@@ -498,10 +498,10 @@ def log_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=15)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=15)
-    scheduler.add_job(log_bot_data, "interval", minutes=15)
-    scheduler.add_job(log_bot_action, "interval", minutes=15)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_data, "interval", minutes=30)
+    scheduler.add_job(log_bot_action, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
