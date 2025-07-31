@@ -255,45 +255,41 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
         if price_pct is None or volume_pct is None:
             return "⚪ Không rõ"
 
-        # 🔴 Xả có lực
-        if price_pct < -0.2 and volume_pct > 2.5:
-            if funding_rate is not None and funding_rate > 0.02 and order_book_bias == "🔴 Cung mạnh":
+        # 🔴 Xả mạnh
+        if price_pct < -0.07 and volume_pct > 0.8:
+            if funding_rate and funding_rate > 0.01 and order_book_bias == "🔴 Cung mạnh":
                 return "🔴 Xả mạnh"
 
-        # ⚠️ Trap tăng
-        if price_pct > 0.25 and volume_pct < 0:
-            if funding_rate is not None and funding_rate > 0.02 and order_book_bias == "🔴 Cung mạnh":
-                return "📋 Trap"
-
-        # 💰 Gom mạnh
-        if price_pct > 0.12 and volume_pct > 2.5:
-            if funding_rate is not None and funding_rate < -0.005 and order_book_bias == "🟢 Cầu mạnh":
+        # 🔵 Gom mạnh
+        if price_pct > 0.07 and volume_pct > 0.8:
+            if funding_rate and funding_rate < -0.005 and order_book_bias == "🟢 Cầu mạnh":
                 return "🔵 Gom mạnh"
 
         # 🟡 Gom âm thầm
-        if abs(price_pct) <= 0.1 and volume_pct >= 2:
-            if funding_rate is not None and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
+        if abs(price_pct) <= 0.05 and volume_pct > 0.6:
+            if funding_rate and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
                 return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
-        if abs(price_pct) <= 0.1 and volume_pct >= 2:
-            if funding_rate is not None and funding_rate > 0 and order_book_bias in ["🔴 Cung mạnh", "⚪ Cân bằng"]:
+        if abs(price_pct) <= 0.05 and volume_pct > 0.6:
+            if funding_rate and funding_rate > 0 and order_book_bias in ["🔴 Cung mạnh", "⚪ Cân bằng"]:
                 return "🖤 Xả âm thầm"
 
+        # 📋 Trap tăng
+        if price_pct > 0.1 and volume_pct < 0:
+            if funding_rate and funding_rate > 0.01 and order_book_bias == "🔴 Cung mạnh":
+                return "📋 Trap"
+
         # 💣 Áp lực Long
-        if funding_rate is not None and funding_rate > 0.05 and cross_margin and cross_margin > 0.00015:
+        if funding_rate and funding_rate > 0.04 and cross_margin and cross_margin > 0.00010:
             return "💣 Áp lực Long"
 
         # 🔸 Rung lắc
-        if -0.3 <= price_pct <= 0.3 and 2 <= volume_pct <= 7:
+        if abs(price_pct) <= 0.15 and 1 <= volume_pct <= 2.5:
             return "🔸 Rung lắc"
 
-        # ⚫ Bỏ mặc (có thể đổi tên)
-        if price_pct < -0.4 and volume_pct < -1:
-            return "⚫ Bỏ mặc"
-
         # ⚪ Bình thường
-        if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
+        if abs(price_pct) < 0.05 and abs(volume_pct) < 0.5:
             return "⚪ Bình thường"
 
         return "⚪ Không rõ"
@@ -514,10 +510,10 @@ def log_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=30)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_action, "interval", minutes=30)
+    scheduler.add_job(log_funding_data, "interval", minutes=15)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=15)
+    scheduler.add_job(log_bot_data, "interval", minutes=15)
+    scheduler.add_job(log_bot_action, "interval", minutes=15)
     scheduler.start()
     
 def test_telegram():
