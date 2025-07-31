@@ -250,7 +250,7 @@ try:
 except Exception as e:
     print("[BOT LOG Read ERROR]", e)
 
-def detect_bot_action_v2(price_pct, volume_pct):
+def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
     try:
         if price_pct is None or volume_pct is None:
             return "⚪ Không rõ"
