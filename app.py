@@ -220,7 +220,6 @@ try:
                 # ✅ Gửi tất cả hành vi luôn
                 msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
                 try:
-                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
                     print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
                 except Exception as e:
                     print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
