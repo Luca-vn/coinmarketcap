@@ -38,11 +38,12 @@
                 countXaAm++;
             } else if (action.includes("📋")) {
                 pointStyles.push("triangle");
-                pointColors.push("pink");
+                pointColors.push("deeppink");
                 countTrap++;
             } else {
-                pointStyles.push("triangle");
-                pointColors.push("gray");
+                // ✅ Nếu là "không rõ", ta dùng chấm nhỏ trong suốt để ẩn luôn
+                pointStyles.push("circle");
+                pointColors.push("rgba(0,0,0,0)");  // Màu trong suốt
             }
         });
 
@@ -109,7 +110,7 @@
         document.write("<span style='color:red;'>🔴 Xả mạnh</span>: " + countXa + " lần<br>");
         document.write("<span style='color:gold;'>🟡 Gom âm thầm</span>: " + countGomAm + " lần<br>");
         document.write("<span style='color:black;'>🖤 Xả âm thầm</span>: " + countXaAm + " lần<br>");
-        document.write("<span style='color:pink;'>📋 Trap</span>: " + countTrap + " lần<br>");
+        document.write("<span style='color:deeppink;'>📋 Trap</span>: " + countTrap + " lần<br>");
         document.write("</div>");
     </script>
 </body>
