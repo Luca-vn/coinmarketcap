@@ -7,8 +7,6 @@ import pytz
 import csv
 from threading import Thread
 import telegram
-import time
-import asyncio
 from datetime import datetime, timezone
 from datetime import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -27,22 +25,6 @@ assets = [
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
 TELEGRAM_CHAT_ID = "6664554824"
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
-
-def send_telegram_message(text):
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": text
-        }
-        response = requests.post(url, json=payload)
-        if response.status_code == 200:
-            print("[TELEGRAM ✅] Sent BOT ACTION alert")
-        else:
-            print("[TELEGRAM ❌]", response.text)
-        time.sleep(0.2)  # tránh spam quá nhanh bị block
-    except Exception as e:
-        print(f"[TELEGRAM ERROR] {e}")
 
 def get_binance_price_volume():
     url = "https://api.binance.com/api/v3/ticker/24hr"
@@ -196,37 +178,33 @@ def log_bot_data():
                 print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
 
     # Gửi alert nếu bot_action đáng chú ý
-    # Gửi alert nếu bot_action – GỬI TẤT CẢ HÀNH VI
-try:
-    df = safe_read_csv(BOT_LOG_FILE)
-    df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa
-
-    for coin in assets:
-        df_coin = df[df["asset"] == coin.upper()].copy()
-        df_coin = df_coin.sort_values("timestamp")
-        if len(df_coin) >= 2:
-            try:
-                last_price = float(df_coin.iloc[-2]["price"])
-                last_volume = float(df_coin.iloc[-2]["volume"])
-                current_price = float(df_coin.iloc[-1]["price"])
-                current_volume = float(df_coin.iloc[-1]["volume"])
-                price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-                bot_action = detect_bot_action(price_pct, volume_pct)
-
-                print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
-
-                # ✅ Gửi tất cả hành vi luôn
-                msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+    try:
+        df = safe_read_csv(BOT_LOG_FILE)
+        df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa để khớp
+        
+        for coin in assets:
+            df_coin = df[df["asset"] == coin.upper()].copy()
+            df_coin = df_coin.sort_values("timestamp")
+            if len(df_coin) >= 2:
                 try:
-                    print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
-                except Exception as e:
-                    print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
+                    last_price = float(df_coin.iloc[-2]["price"])
+                    last_volume = float(df_coin.iloc[-2]["volume"])
+                    current_price = float(df_coin.iloc[-1]["price"])
+                    current_volume = float(df_coin.iloc[-1]["volume"])
+                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
+                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
+                    bot_action = detect_bot_action(price_pct, volume_pct)
 
-            except Exception as e:
-                print(f"[BotAction Analysis ERROR] {coin.upper()}:", e)
-except Exception as e:
-    print("[BOT LOG Read ERROR]", e)
+                    print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
+
+                    if bot_action not in ["⚪ Không rõ", "⚪ Bình thường"]:
+                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                        print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
+                except Exception as e:
+                    print(f"[BotAction Analysis ERROR] {coin.upper()}:", e)
+    except Exception as e:
+        print("[BOT LOG Read ERROR]", e)
 
 def detect_bot_action(price_pct, volume_pct):
     # Xử lý trường hợp thiếu dữ liệu
@@ -439,38 +417,6 @@ def chart_bot(asset):
                                bot_actions=bot_actions)
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-
-def log_bot_action():
-    try:
-        df = safe_read_csv(BOT_LOG_FILE)
-        df["asset"] = df["asset"].str.upper()
-
-        for coin in assets:
-            df_coin = df[df["asset"] == coin.upper()].copy()
-            df_coin = df_coin.sort_values("timestamp")
-            if len(df_coin) >= 2:
-                try:
-                    last_price = float(df_coin.iloc[-2]["price"])
-                    last_volume = float(df_coin.iloc[-2]["volume"])
-                    current_price = float(df_coin.iloc[-1]["price"])
-                    current_volume = float(df_coin.iloc[-1]["volume"])
-
-                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-
-                    bot_action = detect_bot_action(price_pct, volume_pct)
-
-                    # ✅ Chỉ gửi các hành vi đặc biệt
-                    if any(keyword in bot_action for keyword in ["🔵", "🔴", "🟡", "🖤", "📋"]):
-                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                        asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
-                        print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
-                    else:
-                        print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
-                except Exception as e:
-                    print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
-    except Exception as e:
-        print("[BOT ACTION READ ERROR]:", e)
         
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
