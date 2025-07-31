@@ -7,6 +7,7 @@ import pytz
 import csv
 from threading import Thread
 import telegram
+import time
 from datetime import datetime, timezone
 from datetime import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -19,13 +20,29 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP", "SHIB"
+    "USDT", "USDC", "BTC", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
 TELEGRAM_CHAT_ID = "6664554824"
 bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
+def send_telegram_message(text):
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": text
+        }
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print("[TELEGRAM ✅] Sent BOT ACTION alert")
+        else:
+            print("[TELEGRAM ❌]", response.text)
+        time.sleep(0.2)  # tránh spam quá nhanh bị block
+    except Exception as e:
+        print(f"[TELEGRAM ERROR] {e}")
+        
 def get_binance_price_volume():
     url = "https://api.binance.com/api/v3/ticker/24hr"
     try:
