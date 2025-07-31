@@ -28,17 +28,17 @@
                 pointStyles.push("triangle");
                 pointColors.push("red");
                 countXa++;
-            } else if (action.includes("🌕")) {
-                pointStyles.push("triangle");
-                pointColors.push("green");
-                countGomAm++;
-            } else if (action.includes("🔥")) {
-                pointStyles.push("triangle");
-                pointColors.push("orange");
-                countXaAm++;
             } else if (action.includes("🟡")) {
                 pointStyles.push("triangle");
-                pointColors.push("yellow");
+                pointColors.push("gold");
+                countGomAm++;
+            } else if (action.includes("🖤")) {
+                pointStyles.push("triangle");
+                pointColors.push("black");
+                countXaAm++;
+            } else if (action.includes("📋")) {
+                pointStyles.push("triangle");
+                pointColors.push("pink");
                 countTrap++;
             } else {
                 pointStyles.push("triangle");
@@ -105,11 +105,11 @@
         // Hiển thị thống kê dưới chart
         document.write("<div style='margin-top:20px;'>");
         document.write("<b>Thống kê hành vi bot:</b><br>");
-        document.write("<span style='color:green;'>🔵 Gom mạnh</span>: " + countGom + " lần<br>");
+        document.write("<span style='color:blue;'>🔵 Gom mạnh</span>: " + countGom + " lần<br>");
         document.write("<span style='color:red;'>🔴 Xả mạnh</span>: " + countXa + " lần<br>");
-        document.write("<span style='color:gold;'>🌕 Gom âm thầm</span>: " + countGomAm + " lần<br>");
-        document.write("<span style='color:black;'>🔥 Xả âm thầm</span>: " + countXaAm + " lần<br>");
-        document.write("<span style='color:gray;'>🟡 Trap</span>: " + countTrap + " lần<br>");
+        document.write("<span style='color:gold;'>🟡 Gom âm thầm</span>: " + countGomAm + " lần<br>");
+        document.write("<span style='color:black;'>🖤 Xả âm thầm</span>: " + countXaAm + " lần<br>");
+        document.write("<span style='color:pink;'>📋 Trap</span>: " + countTrap + " lần<br>");
         document.write("</div>");
     </script>
 </body>
