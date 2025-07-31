@@ -256,45 +256,50 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
             return "⚪ Không rõ"
 
         # 🔴 Xả có lực
-        if price_pct < -0.3 and volume_pct > 5:
-            if funding_rate and funding_rate > 0.03 and order_book_bias == "🔴 Cung mạnh":
+        if price_pct < -0.2 and volume_pct > 2.5:
+            if funding_rate is not None and funding_rate > 0.02 and order_book_bias == "🔴 Cung mạnh":
                 return "🔴 Xả mạnh"
 
         # ⚠️ Trap tăng
-        if price_pct > 0.3 and volume_pct < -5:
-            if funding_rate and funding_rate > 0.03 and order_book_bias == "🔴 Cung mạnh":
-                return "⚠️ Trap tăng"
+        if price_pct > 0.25 and volume_pct < 0:
+            if funding_rate is not None and funding_rate > 0.02 and order_book_bias == "🔴 Cung mạnh":
+                return "📋 Trap"
 
         # 💰 Gom mạnh
-        if price_pct > 0.2 and volume_pct > 5:
-            if funding_rate and funding_rate < -0.01 and order_book_bias == "🟢 Cầu mạnh":
-                return "💰 Gom mạnh"
+        if price_pct > 0.12 and volume_pct > 2.5:
+            if funding_rate is not None and funding_rate < -0.005 and order_book_bias == "🟢 Cầu mạnh":
+                return "🔵 Gom mạnh"
 
         # 🟡 Gom âm thầm
-        if abs(price_pct) <= 0.1 and volume_pct >= 3:
-            if funding_rate and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
+        if abs(price_pct) <= 0.1 and volume_pct >= 2:
+            if funding_rate is not None and funding_rate < 0 and order_book_bias in ["🟢 Cầu mạnh", "⚪ Cân bằng"]:
                 return "🟡 Gom âm thầm"
 
+        # 🖤 Xả âm thầm
+        if abs(price_pct) <= 0.1 and volume_pct >= 2:
+            if funding_rate is not None and funding_rate > 0 and order_book_bias in ["🔴 Cung mạnh", "⚪ Cân bằng"]:
+                return "🖤 Xả âm thầm"
+
         # 💣 Áp lực Long
-        if funding_rate and funding_rate > 0.05 and cross_margin and cross_margin > 0.00015:
+        if funding_rate is not None and funding_rate > 0.05 and cross_margin and cross_margin > 0.00015:
             return "💣 Áp lực Long"
 
         # 🔸 Rung lắc
-        if -0.2 <= price_pct <= -0.1 and 3 <= volume_pct <= 7:
+        if -0.3 <= price_pct <= 0.3 and 2 <= volume_pct <= 7:
             return "🔸 Rung lắc"
 
-        # ⚫ Bỏ mặc
-        if price_pct < -0.3 and volume_pct < -3:
+        # ⚫ Bỏ mặc (có thể đổi tên)
+        if price_pct < -0.4 and volume_pct < -1:
             return "⚫ Bỏ mặc"
 
-        # ⚪ Biến động nhẹ
+        # ⚪ Bình thường
         if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
             return "⚪ Bình thường"
 
         return "⚪ Không rõ"
     except:
         return "❓Không xác định"
-
+        
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
