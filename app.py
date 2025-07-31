@@ -422,7 +422,36 @@ def chart_bot(asset):
                                bot_actions=bot_actions)
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-        
+
+
+def log_bot_action():
+    try:
+        df = safe_read_csv(BOT_LOG_FILE)
+        df["asset"] = df["asset"].str.upper()
+
+        for coin in assets:
+            df_coin = df[df["asset"] == coin.upper()].copy()
+            df_coin = df_coin.sort_values("timestamp")
+            if len(df_coin) >= 2:
+                try:
+                    last_price = float(df_coin.iloc[-2]["price"])
+                    last_volume = float(df_coin.iloc[-2]["volume"])
+                    current_price = float(df_coin.iloc[-1]["price"])
+                    current_volume = float(df_coin.iloc[-1]["volume"])
+
+                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
+                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
+
+                    bot_action = detect_bot_action(price_pct, volume_pct)
+
+                    msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                    print(f"[TELEGRAM] ✅ Sent BOT ACTION alert for {coin.upper()}")
+                except Exception as e:
+                    print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
+    except Exception as e:
+        print("[BOT ACTION READ ERROR]:", e)
+
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
@@ -453,32 +482,3 @@ if __name__ == "__main__":
     schedule_jobs()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-
-
-def log_bot_action():
-    try:
-        df = safe_read_csv(BOT_LOG_FILE)
-        df["asset"] = df["asset"].str.upper()
-
-        for coin in assets:
-            df_coin = df[df["asset"] == coin.upper()].copy()
-            df_coin = df_coin.sort_values("timestamp")
-            if len(df_coin) >= 2:
-                try:
-                    last_price = float(df_coin.iloc[-2]["price"])
-                    last_volume = float(df_coin.iloc[-2]["volume"])
-                    current_price = float(df_coin.iloc[-1]["price"])
-                    current_volume = float(df_coin.iloc[-1]["volume"])
-
-                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-
-                    bot_action = detect_bot_action(price_pct, volume_pct)
-
-                    msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
-                    print(f"[TELEGRAM] ✅ Sent BOT ACTION alert for {coin.upper()}")
-                except Exception as e:
-                    print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
-    except Exception as e:
-        print("[BOT ACTION READ ERROR]:", e)
