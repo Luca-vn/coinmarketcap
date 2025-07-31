@@ -462,10 +462,13 @@ def log_bot_action():
 
                     bot_action = detect_bot_action(price_pct, volume_pct)
 
-                    # Gửi mọi hành vi, kể cả bình thường/không rõ
-                    msg = f"📊 [BOT ACTION TEST] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                    asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
-                    print(f"[TELEGRAM] ✅ Sent TEST alert for {coin.upper()} → {bot_action}")
+                    # ✅ Chỉ gửi các hành vi đặc biệt
+                    if any(keyword in bot_action for keyword in ["🔵", "🔴", "🟡", "🖤", "📋"]):
+                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                        asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
+                        print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
+                    else:
+                        print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
                 except Exception as e:
                     print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
     except Exception as e:
