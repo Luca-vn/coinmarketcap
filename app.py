@@ -250,39 +250,42 @@ try:
 except Exception as e:
     print("[BOT LOG Read ERROR]", e)
 
-def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
-        try:
-            if price_pct is None or volume_pct is None:
-                return "⚪ Không rõ"
-
-        # 🔵 Gom mạnh
-            if price_pct > 0.5 and volume_pct > 3:
-                return "🔵 Gom mạnh"
-
-        # 🔴 Xả mạnh
-            if price_pct < -0.5 and volume_pct > 3:
-                return "🔴 Xả mạnh"
-
-        # 🟡 Gom âm thầm
-            if -0.2 <= price_pct <= 0.2 and volume_pct > 2:
-                return "🟡 Gom âm thầm"
-
-        # 🖤 Xả âm thầm
-            if -0.2 <= price_pct <= 0.2 and volume_pct < -2:
-                return "🖤 Xả âm thầm"
-
-        # 📋 Trap
-            if abs(price_pct) > 0.5 and abs(volume_pct) < 0.3:
-                return "📋 Trap"
-
-        # ⚪ Bình thường
-            if abs(price_pct) < 0.2 and abs(volume_pct) < 0.5:
-                return "⚪ Bình thường"
-
+def detect_bot_action_v2(price_pct, volume_pct):
+    try:
+        if price_pct is None or volume_pct is None:
             return "⚪ Không rõ"
 
-        except:
-            return "❓Không xác định"
+        # 🔴 Xả mạnh
+        if price_pct < -0.7 and volume_pct > 3:
+            return "🔴 Xả mạnh"
+
+        # 🔵 Gom mạnh
+        if price_pct > 0.7 and volume_pct > 3:
+            return "🔵 Gom mạnh"
+
+        # 🟡 Gom âm thầm
+        if abs(price_pct) <= 0.3 and volume_pct >= 2:
+            return "🟡 Gom âm thầm"
+
+        # 🖤 Xả âm thầm
+        if abs(price_pct) <= 0.3 and volume_pct >= 2 and price_pct < 0:
+            return "🖤 Xả âm thầm"
+
+        # 📋 Trap
+        if price_pct > 0.6 and volume_pct < -1:
+            return "📋 Trap"
+
+        # 🔸 Rung lắc
+        if abs(price_pct) <= 0.6 and 1 <= volume_pct <= 2:
+            return "🔸 Rung lắc"
+
+        # ⚪ Bình thường
+        if abs(price_pct) < 0.2 and abs(volume_pct) < 1:
+            return "⚪ Bình thường"
+
+        return "⚪ Không rõ"
+    except:
+        return "❓Không xác định"
         
 @app.route("/")
 def index():
