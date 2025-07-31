@@ -8,6 +8,7 @@ import csv
 from threading import Thread
 import telegram
 import time
+import asyncio
 from datetime import datetime, timezone
 from datetime import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -129,7 +130,7 @@ def log_funding_data():
                 print(f"[LOG FUNDING] ⚠️ Không có dữ liệu cho {asset}")
 
 def log_and_alert():
-    now =  datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     margin_data = get_cross_margin_data()
     if not margin_data:
         print("[LOG CROSS] Không có dữ liệu cross margin.")
@@ -160,10 +161,11 @@ def log_and_alert():
 
     for msg in alert_msgs:
         try:
-            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+            asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
+            print(f"[TELEGRAM] ✅ Sent CROSS MARGIN alert: {msg}")
         except Exception as e:
             print("[Telegram Error]", e)
-            
+     
 def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
@@ -461,7 +463,7 @@ def log_bot_action():
                     bot_action = detect_bot_action(price_pct, volume_pct)
 
                     msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
+                    asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
                     print(f"[TELEGRAM] ✅ Sent BOT ACTION alert for {coin.upper()}")
                 except Exception as e:
                     print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
