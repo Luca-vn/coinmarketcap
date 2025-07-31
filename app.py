@@ -165,7 +165,27 @@ def log_and_alert():
             print(f"[TELEGRAM] ✅ Sent CROSS MARGIN alert: {msg}")
         except Exception as e:
             print("[Telegram Error]", e)
-     
+def get_order_book_bias(symbol):
+    url = f"https://fapi.binance.com/fapi/v1/depth?symbol={symbol.upper()}&limit=10"
+    try:
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        bid_volume = sum(float(bid[1]) for bid in data.get("bids", []))
+        ask_volume = sum(float(ask[1]) for ask in data.get("asks", []))
+        if ask_volume == 0:
+            return "⚪ Cân bằng"
+
+        ratio = bid_volume / ask_volume
+        if ratio > 1.5:
+            return "🟢 Cầu mạnh"
+        elif ratio < 0.67:
+            return "🔴 Cung mạnh"
+        else:
+            return "⚪ Cân bằng"
+    except Exception as e:
+        print(f"[ORDER BOOK] Lỗi khi lấy dữ liệu {symbol}: {e}")
+        return "N/A"
+
 def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
@@ -320,7 +340,7 @@ def index():
         funding_rate = funding_data.get(coin)
 
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
-
+        order_book_bias = get_order_book_bias(coin + "USDT")
         data.append({
             "asset": coin,
             "price_usdt": f"{price:,.4f}" if price else "-",
@@ -332,6 +352,7 @@ def index():
             "cross_margin": f"{cross_margin:.10f}" if cross_margin else "-",
             "next_margin": f"{next_margin:.10f}" if next_margin else "-",
             "funding_rate": f"{funding_rate * 100:.8f}%" if funding_rate is not None else "-",
+            "order_book_bias": order_book_bias,
             "log_view": f"<a href='/chart/cross/{coin}' target='_blank'>Cross</a> | <a href='/chart/funding/{coin}' target='_blank'>Funding</a>",
             "propose": "-"
         })
