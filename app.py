@@ -376,18 +376,19 @@ def log_price_volume_data():
 def chart_bot(asset):
     try:
         df = safe_read_csv("bot_chart_log.csv")
-        df_asset.dropna(subset=["price", "volume"], inplace=True)
-        if df.empty:
+        df_asset = df[df["asset"] == asset.upper()].copy()
+
+        if df_asset.empty:
             return f"No bot chart data for {asset}"
 
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        df["timestamp"] = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
-        df.sort_values("timestamp", inplace=True)
+        df_asset.dropna(subset=["price", "volume"], inplace=True)
+        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
+        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
+        df_asset.sort_values("timestamp", inplace=True)
         df_asset["price_pct"] = df_asset["price"].pct_change().fillna(0) * 100
         df_asset["volume_pct"] = df_asset["volume"].pct_change().fillna(0) * 100
-        labels = df["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
+        labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
 
-        # Logic đánh dấu bot action
         def classify_bot_action(row):
             p = row["price_pct"]
             v = row["volume_pct"]
@@ -406,13 +407,12 @@ def chart_bot(asset):
             else:
                 return "Không rõ"
 
-        df["bot_action"] = df.apply(classify_bot_action, axis=1)
+        df_asset["bot_action"] = df_asset.apply(classify_bot_action, axis=1)
 
-        # Truyền dữ liệu sang chart template
-        timestamps = df["timestamp"].astype(str).tolist()
-        price_pct = df["price_pct"].round(2).tolist()
-        volume_pct = df["volume_pct"].round(2).tolist()
-        bot_actions = df["bot_action"].tolist()
+        timestamps = df_asset["timestamp"].astype(str).tolist()
+        price_pct = df_asset["price_pct"].round(2).tolist()
+        volume_pct = df_asset["volume_pct"].round(2).tolist()
+        bot_actions = df_asset["bot_action"].tolist()
 
         return render_template("chart_bot.html",
                                asset=asset,
@@ -422,7 +422,6 @@ def chart_bot(asset):
                                bot_actions=bot_actions)
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-
 
 def log_bot_action():
     try:
