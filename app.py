@@ -251,48 +251,36 @@ except Exception as e:
     print("[BOT LOG Read ERROR]", e)
 
 def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
-    try:
+        try:
         if price_pct is None or volume_pct is None:
             return "⚪ Không rõ"
 
-        # 🔴 Xả mạnh
-        if price_pct < -0.07 and volume_pct > 0.8:
-            if (not funding_rate or funding_rate > 0) and (not order_book_bias or order_book_bias == "🔴 Cung mạnh"):
-                return "🔴 Xả mạnh"
-
         # 🔵 Gom mạnh
-        if price_pct > 0.07 and volume_pct > 0.8:
-            if (not funding_rate or funding_rate < 0) and (not order_book_bias or order_book_bias == "🟢 Cầu mạnh"):
-                return "🔵 Gom mạnh"
+        if price_pct > 0.5 and volume_pct > 3:
+            return "🔵 Gom mạnh"
+
+        # 🔴 Xả mạnh
+        if price_pct < -0.5 and volume_pct > 3:
+            return "🔴 Xả mạnh"
 
         # 🟡 Gom âm thầm
-        if abs(price_pct) <= 0.05 and volume_pct > 0.6:
-            if (funding_rate is None or funding_rate < 0) and (order_book_bias in [None, "🟢 Cầu mạnh", "⚪ Cân bằng"]):
-                return "🟡 Gom âm thầm"
+        if -0.2 <= price_pct <= 0.2 and volume_pct > 2:
+            return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
-        if abs(price_pct) <= 0.05 and volume_pct > 0.6:
-            if (funding_rate is None or funding_rate > 0) and (order_book_bias in [None, "🔴 Cung mạnh", "⚪ Cân bằng"]):
-                return "🖤 Xả âm thầm"
+        if -0.2 <= price_pct <= 0.2 and volume_pct < -2:
+            return "🖤 Xả âm thầm"
 
-        # 📋 Trap tăng
-        if price_pct > 0.1 and volume_pct < 0.1:
-            if (funding_rate and funding_rate > 0.005) and (order_book_bias == "🔴 Cung mạnh" or order_book_bias is None):
-                return "📋 Trap"
-
-        # 💣 Áp lực Long
-        if funding_rate and funding_rate > 0.04 and cross_margin and cross_margin > 0.00010:
-            return "💣 Áp lực Long"
-
-        # 🔸 Rung lắc
-        if abs(price_pct) <= 0.15 and 1 <= volume_pct <= 2.5:
-            return "🔸 Rung lắc"
+        # 📋 Trap
+        if abs(price_pct) > 0.5 and abs(volume_pct) < 0.3:
+            return "📋 Trap"
 
         # ⚪ Bình thường
-        if abs(price_pct) < 0.05 and abs(volume_pct) < 0.5:
+        if abs(price_pct) < 0.2 and abs(volume_pct) < 0.5:
             return "⚪ Bình thường"
 
         return "⚪ Không rõ"
+
     except:
         return "❓Không xác định"
         
