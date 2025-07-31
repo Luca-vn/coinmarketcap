@@ -21,7 +21,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP", "TRX"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP", "SHIB"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
@@ -43,7 +43,7 @@ def send_telegram_message(text):
         time.sleep(0.2)  # tránh spam quá nhanh bị block
     except Exception as e:
         print(f"[TELEGRAM ERROR] {e}")
-        
+
 def get_binance_price_volume():
     url = "https://api.binance.com/api/v3/ticker/24hr"
     try:
@@ -130,7 +130,7 @@ def log_funding_data():
                 print(f"[LOG FUNDING] ⚠️ Không có dữ liệu cho {asset}")
 
 def log_and_alert():
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
+    now =  datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     margin_data = get_cross_margin_data()
     if not margin_data:
         print("[LOG CROSS] Không có dữ liệu cross margin.")
@@ -161,11 +161,10 @@ def log_and_alert():
 
     for msg in alert_msgs:
         try:
-            asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
-            print(f"[TELEGRAM] ✅ Sent CROSS MARGIN alert: {msg}")
+            bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
         except Exception as e:
             print("[Telegram Error]", e)
-     
+            
 def safe_read_csv(filepath):
     try:
         if not os.path.exists(filepath):
@@ -394,19 +393,18 @@ def log_price_volume_data():
 def chart_bot(asset):
     try:
         df = safe_read_csv("bot_chart_log.csv")
-        df_asset = df[df["asset"] == asset.upper()].copy()
-
-        if df_asset.empty:
+        df = df[df["asset"] == asset].copy()
+        if df.empty:
             return f"No bot chart data for {asset}"
 
-        df_asset.dropna(subset=["price", "volume"], inplace=True)
-        df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
-        df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
-        df_asset.sort_values("timestamp", inplace=True)
-        df_asset["price_pct"] = df_asset["price"].pct_change().fillna(0) * 100
-        df_asset["volume_pct"] = df_asset["volume"].pct_change().fillna(0) * 100
-        labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = df["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
+        df.sort_values("timestamp", inplace=True)
+        df["price_pct"] = df["price"].pct_change() * 100
+        df["volume_pct"] = df["volume"].pct_change() * 100
+        labels = df["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
 
+        # Logic đánh dấu bot action
         def classify_bot_action(row):
             p = row["price_pct"]
             v = row["volume_pct"]
@@ -425,12 +423,13 @@ def chart_bot(asset):
             else:
                 return "Không rõ"
 
-        df_asset["bot_action"] = df_asset.apply(classify_bot_action, axis=1)
+        df["bot_action"] = df.apply(classify_bot_action, axis=1)
 
-        timestamps = df_asset["timestamp"].astype(str).tolist()
-        price_pct = df_asset["price_pct"].round(2).tolist()
-        volume_pct = df_asset["volume_pct"].round(2).tolist()
-        bot_actions = df_asset["bot_action"].tolist()
+        # Truyền dữ liệu sang chart template
+        timestamps = df["timestamp"].astype(str).tolist()
+        price_pct = df["price_pct"].round(2).tolist()
+        volume_pct = df["volume_pct"].round(2).tolist()
+        bot_actions = df["bot_action"].tolist()
 
         return render_template("chart_bot.html",
                                asset=asset,
@@ -472,14 +471,13 @@ def log_bot_action():
                     print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
-
+        
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_bot_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_action, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
