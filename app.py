@@ -21,7 +21,7 @@ PRICE_LOG_FILE = "price_volume_history.csv"
 app = Flask(__name__)
 
 assets = [
-    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "ENA", "OP", "TRX"
+    "USDT", "USDC", "BTC", "ETH", "SOL", "SUI", "XRP", "BNB", "DOGE", "AVAX", "ADA", "ASR", "ENA", "ERA", "PENGU", "SPK", "LINK", "CKB", "HBAR", "OP", "TRX"
 ]
 
 TELEGRAM_TOKEN = "7701228926:AAEq3YpX-Os5chx6BVlP0y0nzOzSOdAhN14"
@@ -256,31 +256,31 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
             return "⚪ Không rõ"
 
         # 🔴 Xả mạnh
-        if price_pct < -0.2 and volume_pct > 1:
+        if price_pct < -0.1 and volume_pct > 0.5:
             return "🔴 Xả mạnh"
 
         # 🔵 Gom mạnh
-        if price_pct > 0.2 and volume_pct > 1:
+        if price_pct > 0.1 and volume_pct > 0.5:
             return "🔵 Gom mạnh"
 
         # 🟡 Gom âm thầm
-        if abs(price_pct) <= 0.1 and volume_pct >= 1:
+        if abs(price_pct) <= 0.08 and volume_pct >= 0.5 and price_pct > 0:
             return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
-        if abs(price_pct) <= 0.1 and volume_pct >= 1 and price_pct < 0:
+        if abs(price_pct) <= 0.08 and volume_pct >= 0.5 and price_pct < 0:
             return "🖤 Xả âm thầm"
 
         # 📋 Trap
-        if price_pct > 0.2 and volume_pct < -0.5:
+        if price_pct > 0.1 and volume_pct < -0.3:
             return "📋 Trap"
 
         # 🔸 Rung lắc
-        if abs(price_pct) <= 0.2 and 0.5 <= volume_pct <= 0.8:
+        if abs(price_pct) <= 0.15 and 0.3 <= volume_pct <= 0.6:
             return "🔸 Rung lắc"
 
         # ⚪ Bình thường
-        if abs(price_pct) < 0.2 and abs(volume_pct) < 1:
+        if abs(price_pct) < 0.1 and abs(volume_pct) < 0.5:
             return "⚪ Bình thường"
 
         return "⚪ Không rõ"
@@ -437,16 +437,27 @@ def chart_bot(asset):
             v = row["volume_pct"]
             if pd.isna(p) or pd.isna(v):
                 return "None"
-            if v >= 1 and p >= 0.2:
+    
+            # Gom mạnh
+            if v >= 0.5 and p >= 0.1:
                 return "Gom 🔵"
-            elif v >= 1 and p <= -0.2:
-                return "Xả 🔴"
-            elif 0 < p < 0.2 and 0 < v < 0.5:
+
+            # Xả mạnh
+            elif v >= 0.5 and p <= -0.1:
+               return "Xả 🔴"
+
+            # Gom âm thầm
+            elif 0 < p < 0.1 and 0 < v < 0.3:
                 return "Gom âm thầm 🌕"
-            elif -0.5 < p < 0 and 0 < v < 0.5:
+
+            # Xả âm thầm
+            elif -0.3 < p < 0 and 0 < v < 0.3:
                 return "Xả âm thầm 🔥"
-            elif abs(v) > 1 and abs(p) <= 0.15:
+
+            # Trap
+            elif abs(v) > 0.5 and abs(p) <= 0.08:
                 return "Trap 🟡"
+
             else:
                 return "Không rõ"
 
@@ -511,10 +522,10 @@ def log_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=3)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=3)
-    scheduler.add_job(log_bot_data, "interval", minutes=3)
-    scheduler.add_job(log_bot_action, "interval", minutes=3)
+    scheduler.add_job(log_funding_data, "interval", minutes=15)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=15)
+    scheduler.add_job(log_bot_data, "interval", minutes=15)
+    scheduler.add_job(log_bot_action, "interval", minutes=15)
     scheduler.start()
     
 def test_telegram():
