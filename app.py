@@ -153,7 +153,7 @@ def log_and_alert():
                 if len(df_asset) > 0:
                     last_rate = df_asset.iloc[-1]["hourly_rate"]
                     change = ((rate - last_rate) / last_rate) * 100 if last_rate else 0
-                    if abs(change) >= 3:
+                    if abs(change) >= 1.5:
                         msg = f"⚠️ Cross Margin Alert\n{asset}: Lãi suất {'tăng' if change > 0 else 'giảm'} {change:.2f}%\nHiện tại: {rate:.6f}\nGiờ trước: {last_rate:.6f}"
                         alert_msgs.append(msg)
             else:
@@ -256,27 +256,27 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
             return "⚪ Không rõ"
 
         # 🔴 Xả mạnh
-        if price_pct < -0.7 and volume_pct > 3:
+        if price_pct < -0.2 and volume_pct > 1:
             return "🔴 Xả mạnh"
 
         # 🔵 Gom mạnh
-        if price_pct > 0.7 and volume_pct > 3:
+        if price_pct > 0.2 and volume_pct > 1:
             return "🔵 Gom mạnh"
 
         # 🟡 Gom âm thầm
-        if abs(price_pct) <= 0.3 and volume_pct >= 2:
+        if abs(price_pct) <= 0.1 and volume_pct >= 1:
             return "🟡 Gom âm thầm"
 
         # 🖤 Xả âm thầm
-        if abs(price_pct) <= 0.3 and volume_pct >= 2 and price_pct < 0:
+        if abs(price_pct) <= 0.1 and volume_pct >= 1 and price_pct < 0:
             return "🖤 Xả âm thầm"
 
         # 📋 Trap
-        if price_pct > 0.6 and volume_pct < -1:
+        if price_pct > 0.2 and volume_pct < -0.5:
             return "📋 Trap"
 
         # 🔸 Rung lắc
-        if abs(price_pct) <= 0.6 and 1 <= volume_pct <= 2:
+        if abs(price_pct) <= 0.2 and 0.5 <= volume_pct <= 0.8:
             return "🔸 Rung lắc"
 
         # ⚪ Bình thường
@@ -437,15 +437,15 @@ def chart_bot(asset):
             v = row["volume_pct"]
             if pd.isna(p) or pd.isna(v):
                 return "None"
-            if v >= 3 and p >= 0.5:
+            if v >= 1 and p >= 0.2:
                 return "Gom 🔵"
-            elif v >= 3 and p <= -0.5:
+            elif v >= 1 and p <= -0.2:
                 return "Xả 🔴"
-            elif 0 < p < 0.5 and 0 < v < 3:
+            elif 0 < p < 0.2 and 0 < v < 0.5:
                 return "Gom âm thầm 🌕"
-            elif -0.5 < p < 0 and 0 < v < 3:
+            elif -0.5 < p < 0 and 0 < v < 0.5:
                 return "Xả âm thầm 🔥"
-            elif abs(v) > 5 and abs(p) <= 0.3:
+            elif abs(v) > 1 and abs(p) <= 0.15:
                 return "Trap 🟡"
             else:
                 return "Không rõ"
@@ -504,10 +504,10 @@ def log_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=30)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_data, "interval", minutes=30)
-    scheduler.add_job(log_bot_action, "interval", minutes=30)
+    scheduler.add_job(log_funding_data, "interval", minutes=3)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=3)
+    scheduler.add_job(log_bot_data, "interval", minutes=3)
+    scheduler.add_job(log_bot_action, "interval", minutes=3)
     scheduler.start()
     
 def test_telegram():
