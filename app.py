@@ -471,8 +471,10 @@ def log_bot_action():
         df = safe_read_csv(BOT_LOG_FILE)
         df["asset"] = df["asset"].str.upper()
 
-        # ✅ Danh sách từ khóa cần cảnh báo (text-based)
         ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
+
+        funding_data = get_funding_rate()
+        margin_data = get_cross_margin_data()
 
         for coin in assets:
             df_coin = df[df["asset"] == coin.upper()].copy()
@@ -487,9 +489,14 @@ def log_bot_action():
                     price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
                     volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
 
+                    # ✅ Gán các giá trị phụ trợ trước khi detect
+                    funding_rate = funding_data.get(coin)
+                    cross = margin_data.get(coin, {})
+                    cross_margin = cross.get("current")
+                    order_book_bias = get_order_book_bias(coin + "USDT")
+
                     bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
 
-                    # ✅ Gửi alert nếu chứa từ khóa đặc biệt
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
                         msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
                         asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
