@@ -471,6 +471,9 @@ def log_bot_action():
         df = safe_read_csv(BOT_LOG_FILE)
         df["asset"] = df["asset"].str.upper()
 
+        # ✅ Danh sách từ khóa cần cảnh báo (text-based)
+        ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
+
         for coin in assets:
             df_coin = df[df["asset"] == coin.upper()].copy()
             df_coin = df_coin.sort_values("timestamp")
@@ -486,8 +489,8 @@ def log_bot_action():
 
                     bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
 
-                    # ✅ Chỉ gửi các hành vi đặc biệt
-                    if any(keyword in bot_action for keyword in ["🔵", "🔴", "🟡", "🖤", "📋"]):
+                    # ✅ Gửi alert nếu chứa từ khóa đặc biệt
+                    if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
                         msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
                         asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
                         print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
