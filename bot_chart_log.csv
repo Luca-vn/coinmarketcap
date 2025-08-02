@@ -1,1 +1,4 @@
-timestamp, asset, price, volume, price_pct, volume_pct, bot_action
+timestamp,asset,price,volume,price_pct,volume_pct,bot_action
+2025-08-02 08:00:00,BTC,58600,320000000,0.15,2.45,🔵 Gom mạnh
+2025-08-02 08:00:00,ETH,3100,180000000,0.08,1.22,🟡 Gom âm thầm
+
