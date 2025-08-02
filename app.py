@@ -432,40 +432,29 @@ def chart_bot(asset):
         df_asset["volume_pct"] = df_asset["volume"].pct_change().fillna(0) * 100
         labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
 
-def classify_bot_action(row):
-    p = row["price_pct"]
-    v = row["volume_pct"]
-    if pd.isna(p) or pd.isna(v):
-        return "None"
+        # ✅ HÀM PHÂN LOẠI BOT ACTION
+        def classify_bot_action(row):
+            p = row["price_pct"]
+            v = row["volume_pct"]
+            if pd.isna(p) or pd.isna(v):
+                return "None"
 
-    # Gom mạnh
-    if v >= 1.5 and p >= 0.3:
-        return "Gom 🔵"
+            if v >= 1.5 and p >= 0.3:
+                return "Gom 🔵"
+            elif v >= 1.5 and p <= -0.3:
+                return "Xả 🔴"
+            elif 0 < p < 0.3 and 0.5 < v < 1.5:
+                return "Gom âm thầm 🌕"
+            elif -0.5 < p < 0 and 0.5 < v < 1.5:
+                return "Xả âm thầm 🔥"
+            elif p > 0.3 and v < -0.4:
+                return "Trap 🟡"
+            elif abs(p) < 0.4 and 1.0 <= v <= 2.0:
+                return "Rung lắc 🔸"
+            else:
+                return "Không rõ"
 
-    # Xả mạnh
-    elif v >= 1.5 and p <= -0.3:
-        return "Xả 🔴"
-
-    # Gom âm thầm
-    elif 0 < p < 0.3 and 0.5 < v < 1.5:
-        return "Gom âm thầm 🌕"
-
-    # Xả âm thầm
-    elif -0.5 < p < 0 and 0.5 < v < 1.5:
-        return "Xả âm thầm 🔥"
-
-    # Trap
-    elif p > 0.3 and v < -0.4:
-        return "Trap 🟡"
-
-    # Rung lắc
-    elif abs(p) < 0.4 and 1.0 <= v <= 2.0:
-        return "Rung lắc 🔸"
-
-    else:
-        return "Không rõ"
-
-
+        # ✅ Áp dụng hàm phân loại sau khi hàm kết thúc
         df_asset["bot_action"] = df_asset.apply(classify_bot_action, axis=1)
 
         timestamps = df_asset["timestamp"].astype(str).tolist()
@@ -481,6 +470,7 @@ def classify_bot_action(row):
                                bot_actions=bot_actions)
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
+
 
 def log_bot_action():
     try:
