@@ -8,6 +8,7 @@ import csv
 from threading import Thread
 import telegram
 import time
+from flask import send_file
 import asyncio
 from datetime import datetime, timezone
 from datetime import timezone
@@ -521,6 +522,13 @@ def test_telegram():
             print(f"❌ Lỗi khi gửi Telegram: {response.status_code}, {response.text}")
     except Exception as e:
         print("❌ Lỗi kết nối Telegram:", e)
+
+@app.route("/download/<filename>")
+def download_file(filename):
+    try:
+        return send_file(filename, as_attachment=True)
+    except Exception as e:
+        return f"❌ Không thể tải file: {e}"
 
 if __name__ == "__main__":
     test_telegram()
