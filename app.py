@@ -424,13 +424,27 @@ def chart_bot(asset):
         price_pct = df_asset["price_pct"].tolist()
         volume_pct = df_asset["volume_pct"].tolist()
         bot_actions = df_asset["bot_action"].tolist()
+        
+        # ✅ Thống kê số lần các hành vi bot
+        actions = df_asset["bot_action"].value_counts().to_dict()
+        gom_manh = actions.get("🔵 Gom mạnh", 0)
+        xa_manh = actions.get("🔴 Xả mạnh", 0)
+        gom_am_tham = actions.get("🟡 Gom âm thầm", 0)
+        xa_am_tham = actions.get("🖤 Xả âm thầm", 0)
+        trap = actions.get("📋 Trap", 0)
 
         return render_template("chart_bot.html",
                                asset=asset,
                                timestamps=labels,
                                price_pct=price_pct,
                                volume_pct=volume_pct,
-                               bot_actions=bot_actions)
+                               bot_actions=bot_actions,
+                               gom_manh=gom_manh,
+                               xa_manh=xa_manh,
+                               gom_am_tham=gom_am_tham,
+                               xa_am_tham=xa_am_tham,
+                               trap=trap)
+
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
 
