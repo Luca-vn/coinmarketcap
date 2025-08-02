@@ -510,8 +510,20 @@ def log_bot_action():
 
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
                         msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                        asyncio.run(bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg))
-                        print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
+                        try:
+                            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+                            payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
+                            response = requests.post(url, json=payload)
+
+                            if response.status_code == 200:
+                                print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
+                            else:
+                                print(f"[TELEGRAM ❌] {coin.upper()}: {response.text}")
+
+                            time.sleep(1.5)  # nghỉ giữa mỗi lần gửi
+
+                        except Exception as e:
+                            print(f"[TELEGRAM ERROR] {coin.upper()}: {e}")
                     else:
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
                 except Exception as e:
