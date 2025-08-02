@@ -414,38 +414,15 @@ def chart_bot(asset):
         df_asset["timestamp"] = pd.to_datetime(df_asset["timestamp"])
         df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
         df_asset.sort_values("timestamp", inplace=True)
-        df_asset["price_pct"] = df_asset["price"].pct_change().fillna(0) * 100
-        df_asset["volume_pct"] = df_asset["volume"].pct_change().fillna(0) * 100
+
+        # ✅ Dùng trực tiếp các cột đã được log sẵn
+        df_asset["price_pct"] = df_asset["price_pct"].astype(float).round(2)
+        df_asset["volume_pct"] = df_asset["volume_pct"].astype(float).round(2)
+        df_asset["bot_action"] = df_asset["bot_action"].fillna("⚪ Không rõ")
+
         labels = df_asset["timestamp"].dt.strftime("%m-%d %H:%M").tolist()
-
-        # ✅ HÀM PHÂN LOẠI BOT ACTION
-        def classify_bot_action(row):
-            p = row["price_pct"]
-            v = row["volume_pct"]
-            if pd.isna(p) or pd.isna(v):
-                return "None"
-
-            if v >= 1.5 and p >= 0.3:
-                return "Gom 🔵"
-            elif v >= 1.5 and p <= -0.3:
-                return "Xả 🔴"
-            elif 0 < p < 0.3 and 0.5 < v < 1.5:
-                return "Gom âm thầm 🌕"
-            elif -0.5 < p < 0 and 0.5 < v < 1.5:
-                return "Xả âm thầm 🔥"
-            elif p > 0.3 and v < -0.4:
-                return "Trap 🟡"
-            elif abs(p) < 0.4 and 1.0 <= v <= 2.0:
-                return "Rung lắc 🔸"
-            else:
-                return "Không rõ"
-
-        # ✅ Áp dụng hàm phân loại sau khi hàm kết thúc
-        df_asset["bot_action"] = df_asset.apply(classify_bot_action, axis=1)
-
-        timestamps = df_asset["timestamp"].astype(str).tolist()
-        price_pct = df_asset["price_pct"].round(2).tolist()
-        volume_pct = df_asset["volume_pct"].round(2).tolist()
+        price_pct = df_asset["price_pct"].tolist()
+        volume_pct = df_asset["volume_pct"].tolist()
         bot_actions = df_asset["bot_action"].tolist()
 
         return render_template("chart_bot.html",
@@ -465,50 +442,40 @@ def log_bot_action():
 
         ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
 
+        # ✅ Gọi lại nếu sau này muốn phân tích thêm
         funding_data = get_funding_rate()
         margin_data = get_cross_margin_data()
 
         for coin in assets:
-            df_coin = df[df["asset"] == coin.upper()].copy()
-            df_coin = df_coin.sort_values("timestamp")
-            if len(df_coin) >= 2:
-                try:
-                    last_price = float(df_coin.iloc[-2]["price"])
-                    last_volume = float(df_coin.iloc[-2]["volume"])
-                    current_price = float(df_coin.iloc[-1]["price"])
-                    current_volume = float(df_coin.iloc[-1]["volume"])
+            try:
+                df_coin = df[df["asset"] == coin.upper()].copy()
+                df_coin = df_coin.sort_values("timestamp")
 
-                    price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                    volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
+                if len(df_coin) >= 1:
+                    last_row = df_coin.iloc[-1]
+                    bot_action = last_row.get("bot_action", "⚪ Không rõ")
+                    price_pct = last_row.get("price_pct", 0)
+                    volume_pct = last_row.get("volume_pct", 0)
 
-                    # ✅ Gán các giá trị phụ trợ trước khi detect
-                    funding_rate = funding_data.get(coin)
-                    cross = margin_data.get(coin, {})
-                    cross_margin = cross.get("current")
-                    order_book_bias = get_order_book_bias(coin + "USDT")
-
-                    bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
+                    # Có thể mở rộng ở đây: phân tích thêm funding/cross nếu cần
 
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                        try:
-                            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-                            payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
-                            response = requests.post(url, json=payload)
+                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+                        payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
+                        response = requests.post(url, json=payload)
 
-                            if response.status_code == 200:
-                                print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
-                            else:
-                                print(f"[TELEGRAM ❌] {coin.upper()}: {response.text}")
+                        if response.status_code == 200:
+                            print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
+                        else:
+                            print(f"[TELEGRAM ❌] {coin.upper()}: {response.text}")
 
-                            time.sleep(1.5)  # nghỉ giữa mỗi lần gửi
-
-                        except Exception as e:
-                            print(f"[TELEGRAM ERROR] {coin.upper()}: {e}")
+                        time.sleep(1.5)
                     else:
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
-                except Exception as e:
-                    print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
+            except Exception as e:
+                print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
+
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
 
