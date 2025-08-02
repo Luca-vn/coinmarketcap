@@ -199,56 +199,42 @@ def log_bot_data():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     price_data = get_binance_price_volume()
     file_exists = os.path.exists(BOT_LOG_FILE)
-    
+
+    # Đọc log cũ để tính % thay đổi
+    df_old = safe_read_csv(BOT_LOG_FILE)
+    df_old["asset"] = df_old["asset"].str.upper()
+
     with open(BOT_LOG_FILE, "a", newline='') as f:
         writer = csv.writer(f)
         if not file_exists:
-            writer.writerow(["timestamp", "asset", "price", "volume"])
-        
+            writer.writerow(["timestamp", "asset", "price", "volume", "price_pct", "volume_pct", "bot_action"])
+
         for coin in assets:
             info = price_data.get(coin.upper(), {})
             price = info.get("price")
             volume = info.get("volume")
+
             if price is not None and volume is not None:
-                writer.writerow([now, coin.upper(), price, volume])
-                print(f"[BOT LOG] ✅ {coin.upper()} - Price: {price}, Volume: {volume}")
+                df_coin = df_old[df_old["asset"] == coin.upper()].sort_values("timestamp")
+
+                if len(df_coin) >= 1:
+                    last_price = float(df_coin.iloc[-1]["price"])
+                    last_volume = float(df_coin.iloc[-1]["volume"])
+
+                    price_pct = ((price - last_price) / last_price) * 100 if last_price else 0
+                    volume_pct = ((volume - last_volume) / last_volume) * 100 if last_volume else 0
+                else:
+                    price_pct = 0
+                    volume_pct = 0
+
+                # Gọi hàm detect bot action
+                bot_action = detect_bot_action_v2(price_pct, volume_pct)
+
+                writer.writerow([now, coin.upper(), price, volume, price_pct, volume_pct, bot_action])
+                print(f"[BOT LOG] ✅ {coin.upper()} | {bot_action}")
             else:
-                writer.writerow([now, coin.upper(), "", ""])
-                print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - vẫn log trống")
-
-    # Gửi alert nếu bot_action đáng chú ý
-    # Gửi alert nếu bot_action – GỬI TẤT CẢ HÀNH VI
-try:
-    df = safe_read_csv(BOT_LOG_FILE)
-    df["asset"] = df["asset"].str.upper()  # ✅ Đảm bảo tất cả asset viết hoa
-
-    for coin in assets:
-        df_coin = df[df["asset"] == coin.upper()].copy()
-        df_coin = df_coin.sort_values("timestamp")
-        if len(df_coin) >= 2:
-            try:
-                last_price = float(df_coin.iloc[-2]["price"])
-                last_volume = float(df_coin.iloc[-2]["volume"])
-                current_price = float(df_coin.iloc[-1]["price"])
-                current_volume = float(df_coin.iloc[-1]["volume"])
-                price_pct = ((current_price - last_price) / last_price) * 100 if last_price else 0
-                volume_pct = ((current_volume - last_volume) / last_volume) * 100 if last_volume else 0
-                bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
-
-                print(f"[DEBUG] {coin.upper()} → price_pct: {price_pct:.2f}%, volume_pct: {volume_pct:.2f}%, bot_action: {bot_action}")
-
-                # ✅ Gửi tất cả hành vi luôn
-                msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
-                try:
-                    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=msg)
-                    print(f"[TELEGRAM] ✅ Đã gửi alert BOT ACTION cho {coin.upper()}")
-                except Exception as e:
-                    print(f"[TELEGRAM ERROR] ❌ Không gửi được tin nhắn BOT ACTION cho {coin.upper()}: {e}")
-
-            except Exception as e:
-                print(f"[BotAction Analysis ERROR] {coin.upper()}:", e)
-except Exception as e:
-    print("[BOT LOG Read ERROR]", e)
+                writer.writerow([now, coin.upper(), "", "", "", "", "⚪ Không rõ"])
+                print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - log trống")
 
 def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
     try:
