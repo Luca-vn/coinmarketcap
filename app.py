@@ -542,7 +542,7 @@ def test_telegram():
     try:
         response = requests.post(url, data=payload)
         if response.status_code == 200:
-            print("✅ Gửi Telegram test thành công!")
+            print("✅ Gửi Telegram test thành công. !")
         else:
             print(f"❌ Lỗi khi gửi Telegram: {response.status_code}, {response.text}")
     except Exception as e:
