@@ -440,6 +440,7 @@ def chart_bot(asset):
         for _, row in df_asset.iterrows():
             ts = row["timestamp"]
             action = row["bot_action"]
+            price = round(row["price"], 4) if "price" in row and not pd.isna(row["price"]) else None
             if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
                 color_map = {
                     "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
@@ -454,7 +455,7 @@ def chart_bot(asset):
                     "xMin": ts_start,
                     "xMax": ts_end,
                     "backgroundColor": color_map[action],
-                    "label": {"content": action, "enabled": True}
+                   "label": {"content": f"{action} @ {price}","enabled": True}
                 })
 
         return render_template("chart_bot.html",
