@@ -15,6 +15,7 @@
         const volumeData = {{ volume_pct|tojson }};
         const botActions = {{ bot_actions|tojson }};
         const prices = {{ prices|tojson }};
+        const annotations = {{ annotations|tojson }};
         const pointStyles = [];
         const pointColors = [];
 
@@ -42,9 +43,8 @@
                 pointColors.push("deeppink");
                 countTrap++;
             } else {
-                // ✅ Nếu là "không rõ", ta dùng chấm nhỏ trong suốt để ẩn luôn
                 pointStyles.push("circle");
-                pointColors.push("rgba(0,0,0,0)");  // Màu trong suốt
+                pointColors.push("rgba(0,0,0,0)");
             }
         });
 
@@ -53,25 +53,28 @@
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: '% Price Change',
-                    data: priceData,
-                    borderColor: 'blue',
-                    backgroundColor: 'blue',
-                    tension: 0.1,
-                    pointStyle: pointStyles,
-                    pointRadius: 10,
-                    pointHoverRadius: 12,
-                    pointBackgroundColor: pointColors
-                }, {
-                    label: '% Volume Change',
-                    data: volumeData,
-                    borderColor: 'orange',
-                    backgroundColor: 'orange',
-                    tension: 0.1,
-                    borderDash: [5, 5],
-                    pointRadius: 3
-                }]
+                datasets: [
+                    {
+                        label: '% Price Change',
+                        data: priceData,
+                        borderColor: 'blue',
+                        backgroundColor: 'blue',
+                        tension: 0.1,
+                        pointStyle: pointStyles,
+                        pointRadius: 10,
+                        pointHoverRadius: 12,
+                        pointBackgroundColor: pointColors
+                    },
+                    {
+                        label: '% Volume Change',
+                        data: volumeData,
+                        borderColor: 'orange',
+                        backgroundColor: 'orange',
+                        tension: 0.1,
+                        borderDash: [5, 5],
+                        pointRadius: 3
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -84,25 +87,15 @@
                             }
                         }
                     },
-    legend: {
-        position: 'top'
-    },
-    title: {
-        display: true,
-        text: 'Phân tích hành vi bot: ' + '{{ asset.upper() }}'
-    },
-    // ✅ Thêm phần annotation highlight vùng
-    annotation: {
-        annotations: {{ annotations|tojson }}
-    }
-}
-
                     legend: {
                         position: 'top'
                     },
                     title: {
                         display: true,
-                        text: 'Phân tích hành vi bot: ' + '{{ asset.upper() }}'
+                        text: 'Phân tích hành vi bot: {{ asset.upper() }}'
+                    },
+                    annotation: {
+                        annotations: annotations
                     }
                 },
                 scales: {
@@ -117,7 +110,7 @@
             }
         });
 
-        // Hiển thị thống kê dưới chart
+        // Hiển thị thống kê
         document.write("<div style='margin-top:20px;'>");
         document.write("<b>Thống kê hành vi bot:</b><br>");
         document.write("<span style='color:blue;'>🔵 Gom mạnh</span>: " + countGom + " lần<br>");
