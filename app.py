@@ -425,8 +425,8 @@ def chart_bot(asset):
         price_pct = df_asset["price_pct"].tolist()
         volume_pct = df_asset["volume_pct"].tolist()
         bot_actions = df_asset["bot_action"].tolist()
-        prices = df_asset["price"].round(4).tolist()  # ✅ Thêm dòng này
-        
+        prices = df_asset["price"].round(4).tolist()  # ✅ Dùng giá làm chú thích điểm
+
         # ✅ Thống kê số lần các hành vi bot
         actions = df_asset["bot_action"].value_counts().to_dict()
         gom_manh = actions.get("🔵 Gom mạnh", 0)
@@ -434,47 +434,45 @@ def chart_bot(asset):
         gom_am_tham = actions.get("🟡 Gom âm thầm", 0)
         xa_am_tham = actions.get("🖤 Xả âm thầm", 0)
         trap = actions.get("📋 Trap", 0)
-# ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
-# ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
-    # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
-annotations = []
-for _, row in df_asset.iterrows():
-    ts = row["timestamp"]
-    action = row["bot_action"]
-    if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
-        color_map = {
-            "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
-            "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
-            "📋 Trap": "rgba(255, 192, 203, 0.25)",  # 💗 Hồng nhạt
-            "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
-            "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
-        }
-        ts_start = (ts - pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-        ts_end = (ts + pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-        annotations.append({
-            "xMin": ts_start,
-            "xMax": ts_end,
-            "backgroundColor": color_map[action],
-            "label": {"content": action, "enabled": True}
-        })
+
+        # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
+        annotations = []
+        for _, row in df_asset.iterrows():
+            ts = row["timestamp"]
+            action = row["bot_action"]
+            if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
+                color_map = {
+                    "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
+                    "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
+                    "📋 Trap": "rgba(255, 192, 203, 0.25)",  # Hồng nhạt
+                    "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
+                    "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
+                }
+                ts_start = (ts - pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+                ts_end = (ts + pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+                annotations.append({
+                    "xMin": ts_start,
+                    "xMax": ts_end,
+                    "backgroundColor": color_map[action],
+                    "label": {"content": action, "enabled": True}
+                })
 
         return render_template("chart_bot.html",
-            asset=asset,
-            timestamps=labels,
-            price_pct=price_pct,
-            volume_pct=volume_pct,
-            bot_actions=bot_actions,
-            gom_manh=gom_manh,
-            xa_manh=xa_manh,
-            gom_am_tham=gom_am_tham,
-            xa_am_tham=xa_am_tham,
-            trap=trap,
-            prices=df_asset["price"].tolist(),  # ✅ Thêm dòng này
-            annotations=annotations             # nếu có vùng highlight
-        )
+                               asset=asset,
+                               timestamps=labels,
+                               price_pct=price_pct,
+                               volume_pct=volume_pct,
+                               bot_actions=bot_actions,
+                               prices=prices,
+                               gom_manh=gom_manh,
+                               xa_manh=xa_manh,
+                               gom_am_tham=gom_am_tham,
+                               xa_am_tham=xa_am_tham,
+                               trap=trap,
+                               annotations=annotations)
+    
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-
 
 def log_bot_action():
     try:
