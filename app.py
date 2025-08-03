@@ -425,6 +425,7 @@ def chart_bot(asset):
         price_pct = df_asset["price_pct"].tolist()
         volume_pct = df_asset["volume_pct"].tolist()
         bot_actions = df_asset["bot_action"].tolist()
+        prices = df_asset["price"].round(4).tolist()  # ✅ Thêm dòng này
         
         # ✅ Thống kê số lần các hành vi bot
         actions = df_asset["bot_action"].value_counts().to_dict()
@@ -466,7 +467,9 @@ def chart_bot(asset):
                                gom_am_tham=gom_am_tham,
                                xa_am_tham=xa_am_tham,
                                trap=trap,
-                               annotations=annotations)
+                               annotations=annotations,
+                               trap=trap,
+                               prices=prices)
 
 
     except Exception as e:
