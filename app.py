@@ -483,7 +483,6 @@ def log_bot_action():
 
         ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
 
-        # ✅ Gọi lại nếu sau này muốn phân tích thêm
         funding_data = get_funding_rate()
         margin_data = get_cross_margin_data()
 
@@ -494,19 +493,11 @@ def log_bot_action():
 
                 if len(df_coin) >= 1:
                     last_row = df_coin.iloc[-1]
-
-                    # Lấy dữ liệu đúng kiểu float, tránh lỗi None hoặc NaN
                     bot_action = last_row.get("bot_action", "⚪ Không rõ")
-                    try:
-                        price_pct = float(last_row.get("price_pct", 0) or 0)
-                        volume_pct = float(last_row.get("volume_pct", 0) or 0)
-                    except:
-                        price_pct = 0
-                        volume_pct = 0
+                    price_pct = float(last_row.get("price_pct", 0) or 0)
+                    volume_pct = float(last_row.get("volume_pct", 0) or 0)
 
-                    # Nếu nằm trong hành vi cảnh báo
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-
                         if "Trap" in bot_action:
                             if price_pct > 0:
                                 trap_type = "📈 Trap Long (giả tăng rồi đạp)"
@@ -516,7 +507,6 @@ def log_bot_action():
                         else:
                             msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
 
-                        # Gửi Telegram
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
                         response = requests.post(url, json=payload)
@@ -525,10 +515,10 @@ def log_bot_action():
                             print(f"[TELEGRAM] ✅ Sent ALERT for {coin.upper()} → {bot_action}")
                         else:
                             print(f"[TELEGRAM ❌] {coin.upper()}: {response.text}")
+
                         time.sleep(1.5)
                     else:
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
-
             except Exception as e:
                 print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
 
