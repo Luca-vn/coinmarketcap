@@ -494,10 +494,13 @@ def log_bot_action():
                 if len(df_coin) >= 1:
                     last_row = df_coin.iloc[-1]
                     bot_action = last_row.get("bot_action", "⚪ Không rõ")
-                    price_pct = float(last_row.get("price_pct", 0) or 0)
-                    volume_pct = float(last_row.get("volume_pct", 0) or 0)
+
+                    # ✅ LUÔN ép kiểu float an toàn
+                    price_pct = float(last_row.get("price_pct") or 0)
+                    volume_pct = float(last_row.get("volume_pct") or 0)
 
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
+
                         if "Trap" in bot_action:
                             if price_pct > 0:
                                 trap_type = "📈 Trap Long (giả tăng rồi đạp)"
@@ -521,9 +524,9 @@ def log_bot_action():
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
             except Exception as e:
                 print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
-
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
+
         
 def log_and_analyze_bot_action():
     log_bot_data()
