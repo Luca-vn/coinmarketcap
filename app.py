@@ -436,26 +436,27 @@ def chart_bot(asset):
         trap = actions.get("📋 Trap", 0)
 # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
 # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
-    annotations = []
-    for _, row in df_asset.iterrows():
-        ts = row["timestamp"]
-        action = row["bot_action"]
-        if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
-            color_map = {
-                "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
-                "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
-                "📋 Trap": "rgba(255, 192, 203, 0.25)",  # 💗 Hồng nhạt
-                "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
-                "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
-            }
-            ts_start = (ts - pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-            ts_end = (ts + pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-            annotations.append({
-                "xMin": ts_start,
-                "xMax": ts_end,
-                "backgroundColor": color_map[action],
-                "label": {"content": action, "enabled": True}
-            })
+    # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
+annotations = []
+for _, row in df_asset.iterrows():
+    ts = row["timestamp"]
+    action = row["bot_action"]
+    if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
+        color_map = {
+            "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
+            "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
+            "📋 Trap": "rgba(255, 192, 203, 0.25)",  # 💗 Hồng nhạt
+            "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
+            "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
+        }
+        ts_start = (ts - pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+        ts_end = (ts + pd.Timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+        annotations.append({
+            "xMin": ts_start,
+            "xMax": ts_end,
+            "backgroundColor": color_map[action],
+            "label": {"content": action, "enabled": True}
+        })
 
         return render_template("chart_bot.html",
             asset=asset,
