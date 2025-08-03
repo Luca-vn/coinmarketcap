@@ -10,6 +10,7 @@ import telegram
 import time
 from flask import send_file
 import asyncio
+import math
 from datetime import datetime, timezone
 from datetime import timezone
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -473,6 +474,8 @@ def chart_bot(asset):
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
 
+import math
+
 def log_bot_action():
     try:
         df = safe_read_csv(BOT_LOG_FILE)
@@ -480,7 +483,7 @@ def log_bot_action():
 
         ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
 
-        # ✅ Gọi lại nếu sau này muốn phân tích thêm
+        # ✅ Nếu cần dùng thêm funding hoặc margin
         funding_data = get_funding_rate()
         margin_data = get_cross_margin_data()
 
@@ -495,8 +498,13 @@ def log_bot_action():
                     price_pct = last_row.get("price_pct", 0)
                     volume_pct = last_row.get("volume_pct", 0)
 
+                    # ⚠️ Kiểm tra NaN trước khi convert
+                    if (price_pct is None or math.isnan(price_pct) or
+                        volume_pct is None or math.isnan(volume_pct)):
+                        print(f"[SKIP] {coin.upper()} có dữ liệu NaN → bỏ qua")
+                        continue
+
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-                        # ✅ Phân biệt Trap Long / Trap Short
                         if "Trap" in bot_action:
                             if price_pct > 0:
                                 trap_type = "📈 Trap Long (giả tăng rồi đạp)"
@@ -504,9 +512,8 @@ def log_bot_action():
                                 trap_type = "📉 Trap Short (giả giảm rồi kéo)"
                             msg = f"{trap_type} tại {coin.upper()}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
                         else:
-                            msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                            msg = f"📊 [Thang Bui] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
 
-                        # ✅ Gửi Telegram
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
                         response = requests.post(url, json=payload)
@@ -521,7 +528,6 @@ def log_bot_action():
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
             except Exception as e:
                 print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
-
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
         
