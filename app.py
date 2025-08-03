@@ -457,21 +457,19 @@ def chart_bot(asset):
                 })
 
         return render_template("chart_bot.html",
-                              asset=asset,
-                               timestamps=labels,
-                               price_pct=price_pct,
-                               volume_pct=volume_pct,
-                               bot_actions=bot_actions,
-                               gom_manh=gom_manh,
-                               xa_manh=xa_manh,
-                               gom_am_tham=gom_am_tham,
-                               xa_am_tham=xa_am_tham,
-                               trap=trap,
-                               annotations=annotations,
-                               trap=trap,
-                               prices=prices)
-
-
+            asset=asset,
+            timestamps=labels,
+            price_pct=price_pct,
+            volume_pct=volume_pct,
+            bot_actions=bot_actions,
+            gom_manh=gom_manh,
+            xa_manh=xa_manh,
+            gom_am_tham=gom_am_tham,
+            xa_am_tham=xa_am_tham,
+            trap=trap,
+            prices=df_asset["price"].tolist(),  # ✅ Thêm dòng này
+            annotations=annotations             # nếu có vùng highlight
+        )
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
 
