@@ -416,11 +416,16 @@ def chart_bot(asset):
         df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
         df_asset.sort_values("timestamp", inplace=True)
 
-        # Bỏ dòng đầu tiên nếu %price và %volume đều = 0
+        # ✅ Bỏ dòng đầu tiên nếu %price và %volume đều = 0 (fix kiểu dữ liệu)
         if len(df_asset) > 1:
             first_row = df_asset.iloc[0]
-            if abs(first_row.get("price_pct", 0)) == 0 and abs(first_row.get("volume_pct", 0)) == 0:
-                df_asset = df_asset.iloc[1:]
+            try:
+                price_pct_0 = float(first_row.get("price_pct", 0))
+                volume_pct_0 = float(first_row.get("volume_pct", 0))
+                if abs(price_pct_0) == 0 and abs(volume_pct_0) == 0:
+                    df_asset = df_asset.iloc[1:]
+            except:
+                pass
 
         df_asset["price_pct"] = df_asset["price_pct"].astype(float).round(2)
         df_asset["volume_pct"] = df_asset["volume_pct"].astype(float).round(2)
@@ -432,7 +437,6 @@ def chart_bot(asset):
         bot_actions = df_asset["bot_action"].tolist()
         prices = df_asset["price"].round(4).tolist()
 
-        # Thống kê
         actions = df_asset["bot_action"].value_counts().to_dict()
         gom_manh = actions.get("🔵 Gom mạnh", 0)
         xa_manh = actions.get("🔴 Xả mạnh", 0)
@@ -440,7 +444,6 @@ def chart_bot(asset):
         xa_am_tham = actions.get("🖤 Xả âm thầm", 0)
         trap = actions.get("📋 Trap", 0)
 
-        # Annotations
         annotations = []
         for _, row in df_asset.iterrows():
             ts = row["timestamp"]
@@ -479,7 +482,6 @@ def chart_bot(asset):
 
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-import math
 
 def log_bot_action():
     try:
