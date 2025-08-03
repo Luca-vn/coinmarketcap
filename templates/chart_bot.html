@@ -10,31 +10,14 @@
     <canvas id="botChart" width="1000" height="400"></canvas>
 
     <script>
-        const rawLabels = {{ timestamps|tojson }};
-        const rawPrice = {{ price_pct|tojson }};
-        const rawVolume = {{ volume_pct|tojson }};
-        const rawBotActions = {{ bot_actions|tojson }};
-        const rawPrices = {{ prices|tojson }};
-
-        const labels = [];
-        const priceData = [];
-        const volumeData = [];
-        const botActions = [];
-        const prices = [];
-
-        for (let i = 0; i < rawLabels.length; i++) {
-        const p = rawPrice[i];
-        const v = rawVolume[i];
-
-    // Bỏ qua nếu giá và volume đều gần bằng 0
-        if (Math.abs(p) < 0.01 && Math.abs(v) < 0.01) continue;
-
-        labels.push(rawLabels[i]);
-        priceData.push(p);
-        volumeData.push(v);
-        botActions.push(rawBotActions[i]);
-        prices.push(rawPrices[i]);
-    }
+        const labels = {{ timestamps|tojson }};
+        const priceData = {{ price_pct|tojson }};
+        const volumeData = {{ volume_pct|tojson }};
+        const botActions = {{ bot_actions|default([], true)|tojson }};
+        const prices = {{ prices|default([], true)|tojson }};
+        const annotations = {{ annotations|default([], true)|tojson }};
+        const pointStyles = [];
+        const pointColors = [];
 
         let countGom = 0, countXa = 0, countGomAm = 0, countXaAm = 0, countTrap = 0;
 
@@ -100,7 +83,7 @@
                         callbacks: {
                             afterBody: function(context) {
                                 let index = context[0].dataIndex;
-                                return 'Bot Action: ' + botActions[index] + '\nGiá: ' + prices[index] + ' USDT';
+                                return 'Bot Action: ' + (botActions[index] || 'Không rõ') + '\nGiá: ' + (prices[index] || '-') + ' USDT';
                             }
                         }
                     },
