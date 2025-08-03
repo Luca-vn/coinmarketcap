@@ -260,7 +260,7 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
             return "🖤 Xả âm thầm"
 
         # 📋 Trap chung
-        if abs(price_pct) < 0.3 and abs(volume_pct) < 0.5:
+        if 0.1 < abs(price_pct) < 0.3 and volume_pct < -0.05:
             # Xác định trap theo hướng giá:
             if price_pct > 0:
                 return "📈 Trap Short"
@@ -544,9 +544,9 @@ def log_and_analyze_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=3)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=3)
-    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=3)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
