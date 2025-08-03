@@ -258,22 +258,20 @@ def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=
         if -0.5 < price_pct < 0 and 0.5 < volume_pct < 1.5:
             return "🖤 Xả âm thầm"
 
-        # 📋 Trap
-        if price_pct > 0.3 and volume_pct < -0.4:
-            return "📋 Trap"
-
-        # 🔸 Rung lắc
-        if abs(price_pct) < 0.4 and 1.0 <= volume_pct <= 2.0:
-            return "🔸 Rung lắc"
-
-        # ⚪ Bình thường
-        if abs(price_pct) < 0.2 and abs(volume_pct) < 0.5:
-            return "⚪ Bình thường"
+        # 📋 Trap chung
+        if abs(price_pct) < 0.3 and abs(volume_pct) < 0.5:
+            # Xác định trap theo hướng giá:
+            if price_pct > 0:
+                return "📈 Trap Short"
+            elif price_pct < 0:
+                return "📉 Trap Long"
+            else:
+                return "📋 Trap"
 
         return "⚪ Không rõ"
+
     except:
-        return "❓Không xác định"
-        
+        return "⚪ Không rõ"
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
