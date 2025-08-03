@@ -3,6 +3,7 @@
 <head>
     <title>Bot Action Chart - {{ asset.upper() }}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
 </head>
 <body>
     <h2>Biểu đồ Bot Action: {{ asset.upper() }}</h2>
@@ -13,7 +14,7 @@
         const priceData = {{ price_pct|tojson }};
         const volumeData = {{ volume_pct|tojson }};
         const botActions = {{ bot_actions|tojson }};
-
+        const prices = {{ prices|tojson }};
         const pointStyles = [];
         const pointColors = [];
 
@@ -79,10 +80,23 @@
                         callbacks: {
                             afterBody: function(context) {
                                 let index = context[0].dataIndex;
-                                return 'Bot Action: ' + botActions[index];
+                                return 'Bot Action: ' + botActions[index] + '\nGiá: ' + prices[index] + ' USDT';
                             }
                         }
                     },
+    legend: {
+        position: 'top'
+    },
+    title: {
+        display: true,
+        text: 'Phân tích hành vi bot: ' + '{{ asset.upper() }}'
+    },
+    // ✅ Thêm phần annotation highlight vùng
+    annotation: {
+        annotations: {{ annotations|tojson }}
+    }
+}
+
                     legend: {
                         position: 'top'
                     },
