@@ -495,10 +495,18 @@ def log_bot_action():
                     price_pct = last_row.get("price_pct", 0)
                     volume_pct = last_row.get("volume_pct", 0)
 
-                    # Có thể mở rộng ở đây: phân tích thêm funding/cross nếu cần
-
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-                        msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                        # ✅ Phân biệt Trap Long / Trap Short
+                        if "Trap" in bot_action:
+                            if price_pct > 0:
+                                trap_type = "📈 Trap Long (giả tăng rồi đạp)"
+                            else:
+                                trap_type = "📉 Trap Short (giả giảm rồi kéo)"
+                            msg = f"{trap_type} tại {coin.upper()}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                        else:
+                            msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+
+                        # ✅ Gửi Telegram
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
                         response = requests.post(url, json=payload)
@@ -516,7 +524,7 @@ def log_bot_action():
 
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
-
+        
 def log_and_analyze_bot_action():
     log_bot_data()
     log_bot_action()
