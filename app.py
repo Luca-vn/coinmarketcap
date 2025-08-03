@@ -483,6 +483,7 @@ def log_bot_action():
 
         ALERT_KEYWORDS = ["Gom mạnh", "Xả mạnh", "Gom âm thầm", "Xả âm thầm", "Trap"]
 
+        # ✅ Gọi lại nếu sau này muốn phân tích thêm
         funding_data = get_funding_rate()
         margin_data = get_cross_margin_data()
 
@@ -494,22 +495,21 @@ def log_bot_action():
                 if len(df_coin) >= 1:
                     last_row = df_coin.iloc[-1]
                     bot_action = last_row.get("bot_action", "⚪ Không rõ")
-
-                    # ✅ LUÔN ép kiểu float an toàn
-                    price_pct = float(last_row.get("price_pct") or 0)
-                    volume_pct = float(last_row.get("volume_pct") or 0)
+                    price_pct = last_row.get("price_pct", 0)
+                    volume_pct = last_row.get("volume_pct", 0)
 
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-
+                        # ✅ Phân biệt Trap Long / Trap Short
                         if "Trap" in bot_action:
                             if price_pct > 0:
                                 trap_type = "📈 Trap Long (giả tăng rồi đạp)"
                             else:
                                 trap_type = "📉 Trap Short (giả giảm rồi kéo)"
-                            msg = f"{trap_type} tại {coin.upper()}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                            msg = f"{trap_type} tại {coin.upper()}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
                         else:
-                            msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {price_pct:.2f}% | Volume: {volume_pct:.2f}%"
+                            msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
 
+                        # ✅ Gửi Telegram
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
                         response = requests.post(url, json=payload)
@@ -522,11 +522,12 @@ def log_bot_action():
                         time.sleep(1.5)
                     else:
                         print(f"[BOT ACTION] ⏩ {coin.upper()} hành vi bình thường ({bot_action}) → Không gửi")
+
             except Exception as e:
                 print(f"[BOT ACTION ERROR] {coin.upper()}: {e}")
+
     except Exception as e:
         print("[BOT ACTION READ ERROR]:", e)
-
         
 def log_and_analyze_bot_action():
     log_bot_data()
