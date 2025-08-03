@@ -500,7 +500,7 @@ def log_bot_action():
                     # Có thể mở rộng ở đây: phân tích thêm funding/cross nếu cần
 
                     if any(keyword in bot_action for keyword in ALERT_KEYWORDS):
-                        msg = f"📊 [BOT ACTION] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                        msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
                         payload = {"chat_id": TELEGRAM_CHAT_ID, "text": msg}
                         response = requests.post(url, json=payload)
