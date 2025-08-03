@@ -405,6 +405,7 @@ def log_price_volume_data():
 def chart_bot(asset):
     try:
         df = safe_read_csv("bot_chart_log.csv")
+        df["asset"] = df["asset"].str.upper()
         df_asset = df[df["asset"] == asset.upper()].copy()
 
         if df_asset.empty:
@@ -415,7 +416,12 @@ def chart_bot(asset):
         df_asset["timestamp"] = df_asset["timestamp"].dt.tz_localize("UTC").dt.tz_convert("Asia/Ho_Chi_Minh")
         df_asset.sort_values("timestamp", inplace=True)
 
-        # ✅ Dùng trực tiếp các cột đã được log sẵn
+        # Bỏ dòng đầu tiên nếu %price và %volume đều = 0
+        if len(df_asset) > 1:
+            first_row = df_asset.iloc[0]
+            if abs(first_row.get("price_pct", 0)) == 0 and abs(first_row.get("volume_pct", 0)) == 0:
+                df_asset = df_asset.iloc[1:]
+
         df_asset["price_pct"] = df_asset["price_pct"].astype(float).round(2)
         df_asset["volume_pct"] = df_asset["volume_pct"].astype(float).round(2)
         df_asset["bot_action"] = df_asset["bot_action"].fillna("⚪ Không rõ")
@@ -424,9 +430,9 @@ def chart_bot(asset):
         price_pct = df_asset["price_pct"].tolist()
         volume_pct = df_asset["volume_pct"].tolist()
         bot_actions = df_asset["bot_action"].tolist()
-        prices = df_asset["price"].round(4).tolist()  # ✅ Dùng giá làm chú thích điểm
+        prices = df_asset["price"].round(4).tolist()
 
-        # ✅ Thống kê số lần các hành vi bot
+        # Thống kê
         actions = df_asset["bot_action"].value_counts().to_dict()
         gom_manh = actions.get("🔵 Gom mạnh", 0)
         xa_manh = actions.get("🔴 Xả mạnh", 0)
@@ -434,7 +440,7 @@ def chart_bot(asset):
         xa_am_tham = actions.get("🖤 Xả âm thầm", 0)
         trap = actions.get("📋 Trap", 0)
 
-        # ✅ Tạo danh sách vùng đánh dấu theo hành vi bot
+        # Annotations
         annotations = []
         for _, row in df_asset.iterrows():
             ts = row["timestamp"]
@@ -444,7 +450,7 @@ def chart_bot(asset):
                 color_map = {
                     "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
                     "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
-                    "📋 Trap": "rgba(255, 192, 203, 0.25)",  # Hồng nhạt
+                    "📋 Trap": "rgba(255, 192, 203, 0.25)",
                     "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
                     "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
                 }
@@ -454,7 +460,7 @@ def chart_bot(asset):
                     "xMin": ts_start,
                     "xMax": ts_end,
                     "backgroundColor": color_map[action],
-                   "label": {"content": f"{action} @ {price}","enabled": True}
+                    "label": {"content": f"{action} @ {price}", "enabled": True}
                 })
 
         return render_template("chart_bot.html",
@@ -470,10 +476,9 @@ def chart_bot(asset):
                                xa_am_tham=xa_am_tham,
                                trap=trap,
                                annotations=annotations)
-    
+
     except Exception as e:
         return f"Lỗi chart bot: {str(e)}"
-
 import math
 
 def log_bot_action():
