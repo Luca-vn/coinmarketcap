@@ -442,7 +442,9 @@ def chart_bot(asset):
         xa_manh = actions.get("🔴 Xả mạnh", 0)
         gom_am_tham = actions.get("🟡 Gom âm thầm", 0)
         xa_am_tham = actions.get("🖤 Xả âm thầm", 0)
-        trap = actions.get("📋 Trap", 0)
+        trap_long = actions.get("📉 Trap Long", 0)
+        trap_short = actions.get("📈 Trap Short", 0)
+        trap_total = trap_long + trap_short
 
         annotations = []
         for _, row in df_asset.iterrows():
@@ -477,7 +479,9 @@ def chart_bot(asset):
                                xa_manh=xa_manh,
                                gom_am_tham=gom_am_tham,
                                xa_am_tham=xa_am_tham,
-                               trap=trap,
+                               trap=trap_total,
+                               trap_long=trap_long,
+                               trap_short=trap_short,
                                annotations=annotations)
 
     except Exception as e:
