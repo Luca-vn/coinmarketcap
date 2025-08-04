@@ -19,7 +19,8 @@
         const pointStyles = [];
         const pointColors = [];
 
-        let countGom = 0, countXa = 0, countGomAm = 0, countXaAm = 0, countTrap = 0;
+        let countGom = 0, countXa = 0, countGomAm = 0, countXaAm = 0;
+        let countTrap = 0, countTrapShort = 0, countTrapLong = 0;
 
         botActions.forEach(action => {
             if (action.includes("🔵")) {
@@ -38,10 +39,15 @@
                 pointStyles.push("triangle");
                 pointColors.push("black");
                 countXaAm++;
-            } else if (action.includes("📋")) {
+            } else if (action.includes("Trap")) {
                 pointStyles.push("triangle");
                 pointColors.push("deeppink");
                 countTrap++;
+
+                if (action.includes("📉")) {
+                    countTrapLong++;
+                } else if (action.includes("📈")) {
+                    countTrapShort++;
             } else {
                 pointStyles.push("circle");
                 pointColors.push("rgba(0,0,0,0)");
@@ -118,6 +124,8 @@
         document.write("<span style='color:gold;'>🟡 Gom âm thầm</span>: " + countGomAm + " lần<br>");
         document.write("<span style='color:black;'>🖤 Xả âm thầm</span>: " + countXaAm + " lần<br>");
         document.write("<span style='color:deeppink;'>📋 Trap</span>: " + countTrap + " lần<br>");
+        document.write("<span style='color:deeppink;'>📉 Trap Long</span>: " + countTrapLong + " lần<br>");
+        document.write("<span style='color:deeppink;'>📈 Trap Short</span>: " + countTrapShort + " lần<br>");
         document.write("</div>");
 
         // ✅ Hiển thị bảng vùng giá bên dưới biểu đồ
