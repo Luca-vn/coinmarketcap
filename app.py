@@ -451,11 +451,13 @@ def chart_bot(asset):
             ts = row["timestamp"]
             action = row["bot_action"]
             price = round(row["price"], 4) if "price" in row and not pd.isna(row["price"]) else None
-            if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
+            if action in ["🔴 Xả mạnh", "🔵 Gom mạnh", "📋 Trap", "📈 Trap Short", "📉 Trap Long", "🖤 Xả âm thầm", "🟡 Gom âm thầm"]:
                 color_map = {
                     "🔴 Xả mạnh": "rgba(255, 99, 132, 0.2)",
                     "🔵 Gom mạnh": "rgba(54, 162, 235, 0.2)",
                     "📋 Trap": "rgba(255, 192, 203, 0.25)",
+                    "📈 Trap Short": "rgba(255, 192, 203, 0.25)",
+                    "📉 Trap Long": "rgba(255, 192, 203, 0.25)",
                     "🖤 Xả âm thầm": "rgba(128,128,128,0.2)",
                     "🟡 Gom âm thầm": "rgba(255, 206, 86, 0.2)"
                 }
