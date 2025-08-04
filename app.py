@@ -571,6 +571,11 @@ def download_file(filename):
         return send_file(filename, as_attachment=True)
     except Exception as e:
         return f"❌ Không thể tải file: {e}"
-
+        
 test_telegram()
 schedule_jobs()
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
