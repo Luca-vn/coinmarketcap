@@ -95,7 +95,7 @@
                         text: 'Phân tích hành vi bot: {{ asset.upper() }}'
                     },
                     annotation: {
-                        annotations: annotations
+                        annotations: {} // 🔕 Tắt overlay để không rối biểu đồ
                     }
                 },
                 scales: {
@@ -110,7 +110,7 @@
             }
         });
 
-        // Hiển thị thống kê
+        // ✅ Hiển thị thống kê
         document.write("<div style='margin-top:20px;'>");
         document.write("<b>Thống kê hành vi bot:</b><br>");
         document.write("<span style='color:blue;'>🔵 Gom mạnh</span>: " + countGom + " lần<br>");
@@ -119,6 +119,18 @@
         document.write("<span style='color:black;'>🖤 Xả âm thầm</span>: " + countXaAm + " lần<br>");
         document.write("<span style='color:deeppink;'>📋 Trap</span>: " + countTrap + " lần<br>");
         document.write("</div>");
+
+        // ✅ Hiển thị bảng vùng giá bên dưới biểu đồ
+        document.write("<div style='margin-top:20px;'>");
+        document.write("<h3>📋 Danh sách vùng giá hành vi bot</h3>");
+        document.write("<table border='1' cellpadding='5'><tr><th>Loại</th><th>Thời gian bắt đầu</th><th>Thời gian kết thúc</th><th>Giá</th></tr>");
+        annotations.forEach(a => {
+            let parts = a.label.content.split("@");
+            let type = parts[0].trim();
+            let price = parts[1] ? parts[1].trim() : "-";
+            document.write("<tr><td>" + type + "</td><td>" + a.xMin + "</td><td>" + a.xMax + "</td><td>" + price + "</td></tr>");
+        });
+        document.write("</table></div>");
     </script>
 </body>
 </html>
