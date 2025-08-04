@@ -544,9 +544,9 @@ def log_and_analyze_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=30)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
-    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
+    scheduler.add_job(log_funding_data, "interval", minutes=3)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=3)
+    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=3)
     scheduler.start()
     
 def test_telegram():
@@ -572,8 +572,5 @@ def download_file(filename):
     except Exception as e:
         return f"❌ Không thể tải file: {e}"
 
-if __name__ == "__main__":
-    test_telegram()
-    schedule_jobs()
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+test_telegram()
+schedule_jobs()
