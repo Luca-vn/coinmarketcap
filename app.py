@@ -550,9 +550,9 @@ def log_and_analyze_bot_action():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_funding_data, "interval", minutes=1)
-    scheduler.add_job(log_price_volume_data, "interval", minutes=1)
-    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=1)
+    scheduler.add_job(log_funding_data, "interval", minutes=30)
+    scheduler.add_job(log_price_volume_data, "interval", minutes=30)
+    scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
