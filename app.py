@@ -514,7 +514,7 @@ def log_bot_action():
                                 trap_type = "📉 Trap Short (giả giảm rồi kéo)"
                             msg = f"{trap_type} tại {coin.upper()}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
                         else:
-                            msg = f"📊 [WARNING] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
+                            msg = f"📊 [TRAFFIC] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
 
                         # ✅ Gửi Telegram
                         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
