@@ -13,6 +13,7 @@ import asyncio
 import math
 from datetime import datetime, timezone
 from datetime import timezone
+from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
 FUNDING_LOG_FILE = "funding_history.csv"
@@ -554,6 +555,46 @@ def log_and_analyze_bot_action():
     log_bot_action()
         
 
+def get_bot_action_summary(asset, hours=12, min_records=6):
+    try:
+        df = safe_read_csv(BOT_LOG_FILE)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df[df["asset"] == asset.upper()]
+        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
+
+        if df.shape[0] < min_records:
+            return "⚪ Thiếu log bot"
+
+        counts = df["bot_action"].value_counts()
+        gom = counts.get("🔵 Gom mạnh", 0) + counts.get("🟡 Gom âm thầm", 0)
+        xa = counts.get("🔴 Xả mạnh", 0) + counts.get("🖤 Xả âm thầm", 0)
+        total = gom + xa + counts.get("⚪ Không rõ", 0) + counts.get("📈 Trap Short", 0) + counts.get("📉 Trap Long", 0)
+
+        if total == 0:
+            return "⚪ Không rõ"
+        if gom / total > 0.6:
+            return "🟢 MUA"
+        elif xa / total > 0.6:
+            return "🔴 BÁN"
+        else:
+            return "🟡 CHỜ"
+    except Exception as e:
+        print(f"[BOT SUMMARY ERROR] {asset}: {e}")
+        return "⚪ Lỗi"
+        
+def get_avg_metric(asset, filepath, colname="funding_rate", hours=12, min_records=3):
+    try:
+        df = safe_read_csv(filepath)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df[df["asset"] == asset.upper()]
+        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
+        if df.shape[0] < min_records:
+            return None
+        return df[colname].astype(float).mean()
+    except Exception as e:
+        print(f"[AVG METRIC ERROR] {asset} in {filepath}: {e}")
+        return None
+
 def generate_recommendation():
     now = datetime.now(timezone.utc).astimezone(pytz.timezone("Asia/Bangkok"))
     if now.hour not in [6, 18]:
@@ -568,20 +609,15 @@ def generate_recommendation():
 
     result = []
     for coin in assets:
-        last = df[df["asset"] == coin].sort_values("timestamp").tail(1)
-        if last.empty:
-            continue
+        bot_action = get_bot_action_summary(coin, hours=12)
+        funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=12)
+        cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=12)
 
-        bot_action = last["bot_action"].values[0]
-        price_pct = float(last["price_pct"].values[0])
-        volume_pct = float(last["volume_pct"].values[0])
-        funding = funding_data.get(coin)
-        cross = margin_data.get(coin, {}).get("current")
-
-        if "Gom" in bot_action and funding is not None and funding < 0:
-            signal = "💰 MUA"
-        elif "Xả" in bot_action and funding is not None and funding > 0:
-            signal = "⚠️ BÁN"
+        # Đưa ra tín hiệu
+        if "MUA" in bot_action and funding is not None and funding < -0.005 and cross and cross > 0.0001:
+            signal = "💰 MUA mạnh"
+        elif "BÁN" in bot_action and funding is not None and funding > 0.005 and cross and cross > 0.0001:
+            signal = "⚠️ BÁN mạnh"
         elif "Trap" in bot_action:
             signal = "🚨 TRÁNH"
         else:
@@ -591,10 +627,8 @@ def generate_recommendation():
             "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
             "asset": coin,
             "bot_action": bot_action,
-            "price_pct": f"{price_pct:.2f}%",
-            "volume_pct": f"{volume_pct:.2f}%",
-            "funding_rate": f"{funding * 100:.4f}%" if funding else "-",
-            "cross_margin": f"{cross:.6f}" if cross else "-",
+            "funding_rate": f"{funding * 100:.4f}%" if funding is not None else "-",
+            "cross_margin": f"{cross:.6f}" if cross is not None else "-",
             "signal": signal
         })
 
