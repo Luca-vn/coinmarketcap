@@ -55,30 +55,26 @@
     <br><hr><br>
 <h3>📋 Gợi ý giao dịch (06:00 & 18:00)</h3>
 <table>
-    <thead>
-        <tr>
-            <th>Asset</th>
-            <th>Bot Action</th>
-            <th>Price %</th>
-            <th>Volume %</th>
-            <th>Funding Rate</th>
-            <th>Cross Margin</th>
-            <th>Gợi ý</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in decision_data %}
-        <tr>
-            <td>{{ row.asset }}</td>
-            <td>{{ row.bot_action }}</td>
-            <td>{{ row.price_pct }}</td>
-            <td>{{ row.volume_pct }}</td>
-            <td>{{ row.funding_rate }}</td>
-            <td>{{ row.cross_margin }}</td>
-            <td><b>{{ row.signal }}</b></td>
-        </tr>
-        {% endfor %}
-    </tbody>
+<thead>
+    <tr>
+        <th>Asset</th>
+        <th>Bot Action</th>
+        <th>Funding Rate</th>
+        <th>Cross Margin</th>
+        <th>Gợi ý</th>
+    </tr>
+</thead>
+<tbody>
+    {% for row in decision_data %}
+    <tr>
+        <td>{{ row.asset }}</td>
+        <td>{{ row.bot_action }}</td>
+        <td>{{ row.funding_rate }}</td>
+        <td>{{ row.cross_margin }}</td>
+        <td><b>{{ row.signal }}</b></td>
+    </tr>
+    {% endfor %}
+</tbody>
 </table>
 </body>
 </html>
