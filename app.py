@@ -614,7 +614,7 @@ def schedule_jobs():
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
-        scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
+    scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
     scheduler.start()
     
 def test_telegram():
