@@ -515,9 +515,9 @@ def log_bot_action():
                         # ✅ Phân biệt Trap Long / Trap Short
                         if "Trap" in bot_action:
                             if price_pct > 0:
-                                trap_type = "📈 Trap Long (giả tăng rồi đạp)"
+                                trap_type = "📈 Trap Short (giá tăng rồi đạp)"
                             else:
-                                trap_type = "📉 Trap Short (giả giảm rồi kéo)"
+                                trap_type = "📉 Trap Long (giá giảm rồi kéo)"
                             msg = f"{trap_type} tại {coin.upper()}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
                         else:
                             msg = f"📊 [TRAFFIC] {coin.upper()}: {bot_action}\nGiá: {float(price_pct):.2f}% | Volume: {float(volume_pct):.2f}%"
