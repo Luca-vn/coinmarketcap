@@ -346,7 +346,14 @@ def index():
             "propose": "-"
         })
 
-    return render_template("index.html", data=data)
+        try:
+            df_decision = pd.read_csv("decision_log.csv")
+            last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
+            decision_data = last_decision.to_dict(orient="records")
+        except:
+            decision_data = []
+
+    return render_template("index.html", data=data, decision_data=decision_data)
     
 @app.route("/chart/cross/<asset>")
 def chart_cross(asset):
@@ -547,12 +554,67 @@ def log_and_analyze_bot_action():
     log_bot_action()
         
 
+def generate_recommendation():
+    now = datetime.now(timezone.utc).astimezone(pytz.timezone("Asia/Bangkok"))
+    if now.hour not in [6, 18]:
+        return
+
+    print("[DECISION] ⏰ Đang tạo bảng khuyến nghị...")
+
+    df = safe_read_csv(BOT_LOG_FILE)
+    df["asset"] = df["asset"].str.upper()
+    funding_data = get_funding_rate()
+    margin_data = get_cross_margin_data()
+
+    result = []
+    for coin in assets:
+        last = df[df["asset"] == coin].sort_values("timestamp").tail(1)
+        if last.empty:
+            continue
+
+        bot_action = last["bot_action"].values[0]
+        price_pct = float(last["price_pct"].values[0])
+        volume_pct = float(last["volume_pct"].values[0])
+        funding = funding_data.get(coin)
+        cross = margin_data.get(coin, {}).get("current")
+
+        if "Gom" in bot_action and funding is not None and funding < 0:
+            signal = "💰 MUA"
+        elif "Xả" in bot_action and funding is not None and funding > 0:
+            signal = "⚠️ BÁN"
+        elif "Trap" in bot_action:
+            signal = "🚨 TRÁNH"
+        else:
+            signal = "🤔 CHỜ"
+
+        result.append({
+            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "asset": coin,
+            "bot_action": bot_action,
+            "price_pct": f"{price_pct:.2f}%",
+            "volume_pct": f"{volume_pct:.2f}%",
+            "funding_rate": f"{funding * 100:.4f}%" if funding else "-",
+            "cross_margin": f"{cross:.6f}" if cross else "-",
+            "signal": signal
+        })
+
+    log_path = "decision_log.csv"
+    file_exists = os.path.exists(log_path)
+    with open(log_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=result[0].keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerows(result)
+
+    print(f"[DECISION] ✅ Đã ghi {len(result)} khuyến nghị.")
+
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
+        scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
     scheduler.start()
     
 def test_telegram():
