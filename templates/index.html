@@ -67,19 +67,23 @@
 <tbody>
     {% for row in decision_data %}
     <tr>
-<td style="
-    {% if 'MUA' in row.signal %}
-        background-color:#d4edda; color:#155724; font-weight:bold;
-    {% elif 'BÁN' in row.signal %}
-        background-color:#f8d7da; color:#721c24; font-weight:bold;
-    {% elif 'TRÁNH' in row.signal %}
-        background-color:#fff3cd; color:#856404; font-weight:bold;
-    {% else %}
-        color:#6c757d;
-    {% endif %}
-">
-    {{ row.signal }}
-</td>
+        <td>{{ row.asset }}</td>
+        <td>{{ row.bot_action }}</td>
+        <td>{{ row.funding_rate }}</td>
+        <td>{{ row.cross_margin }}</td>
+        <td style="
+            {% if 'MUA' in row.signal %}
+                background-color:#d4edda; color:#155724; font-weight:bold;
+            {% elif 'BÁN' in row.signal %}
+                background-color:#f8d7da; color:#721c24; font-weight:bold;
+            {% elif 'TRÁNH' in row.signal %}
+                background-color:#fff3cd; color:#856404; font-weight:bold;
+            {% else %}
+                color:#6c757d;
+            {% endif %}
+        ">
+            {{ row.signal }}
+        </td>
     </tr>
     {% endfor %}
 </tbody>
