@@ -610,13 +610,26 @@ def generate_recommendation():
     result = []
     for coin in assets:
         bot_action = get_bot_action_summary(coin, hours=12)
+        if "Thiếu log" in bot_action:
+            bot_action = get_bot_action_summary(coin, hours=6)
+        if "Thiếu log" in bot_action:
+            bot_action = get_bot_action_summary(coin, hours=3)
         funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=12)
+        if funding is None:
+            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=6)
+        if funding is None:
+            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=3)
+
         cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=12)
+        if cross is None:
+            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=6)
+        if cross is None:
+            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=3)
 
         # Đưa ra tín hiệu
-        if "MUA" in bot_action and funding is not None and funding < -0.005 and cross and cross > 0.0001:
+        if "MUA" in bot_action and funding is not None and funding < -0.0003 and cross and cross > 0.00005:
             signal = "💰 MUA mạnh"
-        elif "BÁN" in bot_action and funding is not None and funding > 0.005 and cross and cross > 0.0001:
+        elif "BÁN" in bot_action and funding is not None and funding > 0.0003 and cross and cross > 0.00005:
             signal = "⚠️ BÁN mạnh"
         elif "Trap" in bot_action:
             signal = "🚨 TRÁNH"
