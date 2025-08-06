@@ -239,41 +239,64 @@ def log_bot_data():
                 writer.writerow([now, coin.upper(), "", "", "", "", "⚪ Không rõ"])
                 print(f"[BOT LOG] ⚠️ {coin.upper()} không có dữ liệu - log trống")
 
-def detect_bot_action_v2(price_pct, volume_pct, funding_rate=None, cross_margin=None, order_book_bias=None):
+def detect_bot_action_v2(price_pct, volume_pct):
     try:
         if price_pct is None or volume_pct is None:
             return "⚪ Không rõ"
 
-        # 🔴 Xả mạnh
-        if price_pct < -0.3 and volume_pct > 1.5:
-            return "🔴 Xả mạnh"
-
-        # 🔵 Gom mạnh
+        # 1. Giá tăng mạnh, volume tăng mạnh => Gom mạnh
         if price_pct > 0.3 and volume_pct > 1.5:
             return "🔵 Gom mạnh"
 
-        # 🟡 Gom âm thầm
-        if 0 < price_pct < 0.3 and 0.5 < volume_pct < 1.5:
+        # 2. Giá giảm mạnh, volume tăng mạnh => Xả mạnh
+        if price_pct < -0.3 and volume_pct > 1.5:
+            return "🔴 Xả mạnh"
+
+        # 3. Giá tăng vừa, volume tăng vừa => Gom âm thầm
+        if 0.05 < price_pct <= 0.3 and 0.5 < volume_pct <= 1.5:
             return "🟡 Gom âm thầm"
 
-        # 🖤 Xả âm thầm
-        if -0.5 < price_pct < 0 and 0.5 < volume_pct < 1.5:
+        # 4. Giá giảm vừa, volume tăng vừa => Xả âm thầm
+        if -0.3 <= price_pct < -0.05 and 0.5 < volume_pct <= 1.5:
             return "🖤 Xả âm thầm"
 
-        # 📋 Trap chung
-        if 0.1 < abs(price_pct) < 0.3 and volume_pct < -0.05:
-            # Xác định trap theo hướng giá:
-            if price_pct > 0:
-                return "📈 Trap Short"
-            elif price_pct < 0:
-                return "📉 Trap Long"
-            else:
-                return "📋 Trap"
+        # 5. Giá tăng, volume giảm => Trap short
+        if price_pct > 0.1 and volume_pct < -0.2:
+            return "📈 Trap Short"
 
+        # 6. Giá giảm, volume giảm => Trap long
+        if price_pct < -0.1 and volume_pct < -0.2:
+            return "📉 Trap Long"
+
+        # 7. Giá tăng, volume giữ nguyên (rất thấp) => Giá tăng không volume
+        if price_pct > 0.2 and abs(volume_pct) < 0.1:
+            return "⚫ Giá tăng không volume"
+
+        # 8. Giá giảm, volume giữ nguyên (rất thấp) => Giá giảm không volume
+        if price_pct < -0.2 and abs(volume_pct) < 0.1:
+            return "⚫ Giá giảm không volume"
+
+        # 9. Giá giữ nguyên, volume tăng => Volume tăng nhưng giá không đổi
+        if abs(price_pct) < 0.05 and volume_pct > 0.5:
+            return "⚫ Volume tăng bất thường"
+
+        # 10. Giá giữ nguyên, volume giảm => Volume giảm nhưng giá không đổi
+        if abs(price_pct) < 0.05 and volume_pct < -0.5:
+            return "⚫ Volume giảm bất thường"
+
+        # 11. Giá & volume đều giảm nhẹ => Có thể là giảm yếu
+        if -0.2 < price_pct < 0 and -0.5 < volume_pct < 0:
+            return "⚫ Giảm nhẹ"
+
+        # 12. Giá & volume đều tăng nhẹ => Có thể là tăng yếu
+        if 0 < price_pct < 0.2 and 0 < volume_pct < 0.5:
+            return "⚫ Tăng nhẹ"
+
+        # Mặc định không rõ
         return "⚪ Không rõ"
-
     except:
         return "⚪ Không rõ"
+        
 @app.route("/")
 def index():
     price_data = get_binance_price_volume()
@@ -560,7 +583,7 @@ def get_bot_action_summary(asset, hours=12, min_records=6):
         df = safe_read_csv(BOT_LOG_FILE)
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df[df["asset"] == asset.upper()]
-        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
+        df = df[df["timestamp"] >= datetime.now() - timedelta(hours=hours)]
 
         if df.shape[0] < min_records:
             return "⚪ Thiếu log bot"
@@ -568,10 +591,13 @@ def get_bot_action_summary(asset, hours=12, min_records=6):
         counts = df["bot_action"].value_counts()
         gom = counts.get("🔵 Gom mạnh", 0) + counts.get("🟡 Gom âm thầm", 0)
         xa = counts.get("🔴 Xả mạnh", 0) + counts.get("🖤 Xả âm thầm", 0)
-        total = gom + xa + counts.get("⚪ Không rõ", 0) + counts.get("📈 Trap Short", 0) + counts.get("📉 Trap Long", 0)
+        trap = counts.get("📈 Trap Short", 0) + counts.get("📉 Trap Long", 0)
+        khong_ro = counts.get("⚪ Không rõ", 0)
 
+        total = gom + xa + trap + khong_ro
         if total == 0:
-            return "⚪ Không rõ"
+            return "⚪ Không rõ (log lỗi)"
+
         if gom / total > 0.6:
             return "🟢 MUA"
         elif xa / total > 0.6:
@@ -661,7 +687,7 @@ def schedule_jobs():
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
-    scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
+    scheduler.add_job(generate_recommendation, "cron", hour="6,21", minute=0)
     scheduler.start()
     
 def test_telegram():
