@@ -583,24 +583,22 @@ def get_bot_action_summary(asset, hours=12, min_records=6):
         df = safe_read_csv(BOT_LOG_FILE)
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df[df["asset"] == asset.upper()]
-        df = df[df["timestamp"] >= datetime.now() - timedelta(hours=hours)]
+        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
 
         if df.shape[0] < min_records:
             return "⚪ Thiếu log bot"
 
         counts = df["bot_action"].value_counts()
-        gom = counts.get("🔵 Gom mạnh", 0) + counts.get("🟡 Gom âm thầm", 0)
-        xa = counts.get("🔴 Xả mạnh", 0) + counts.get("🖤 Xả âm thầm", 0)
+        total = df.shape[0]
+        gom_pct = (counts.get("🔵 Gom mạnh", 0) + counts.get("🟡 Gom âm thầm", 0)) / total
+        xa_pct = (counts.get("🔴 Xả mạnh", 0) + counts.get("🖤 Xả âm thầm", 0)) / total
         trap = counts.get("📈 Trap Short", 0) + counts.get("📉 Trap Long", 0)
-        khong_ro = counts.get("⚪ Không rõ", 0)
 
-        total = gom + xa + trap + khong_ro
-        if total == 0:
-            return "⚪ Không rõ (log lỗi)"
-
-        if gom / total > 0.6:
+        if trap > 0:
+            return "🚨 Trap"
+        if gom_pct >= 0.6:
             return "🟢 MUA"
-        elif xa / total > 0.6:
+        elif xa_pct >= 0.6:
             return "🔴 BÁN"
         else:
             return "🟡 CHỜ"
@@ -635,24 +633,25 @@ def generate_recommendation():
 
     result = []
     for coin in assets:
-        bot_action = get_bot_action_summary(coin, hours=12)
-        if "Thiếu log" in bot_action:
-            bot_action = get_bot_action_summary(coin, hours=6)
-        if "Thiếu log" in bot_action:
-            bot_action = get_bot_action_summary(coin, hours=3)
-        funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=12)
-        if funding is None:
-            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=6)
-        if funding is None:
-            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=3)
+        # ✅ Bot Action ưu tiên theo độ dài giờ
+        for h in [12, 6, 3]:
+            bot_action = get_bot_action_summary(coin, hours=h)
+            if "Thiếu log" not in bot_action:
+                break
 
-        cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=12)
-        if cross is None:
-            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=6)
-        if cross is None:
-            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=3)
+        # ✅ Funding Rate ưu tiên giờ dài → ngắn
+        for h in [12, 6, 3]:
+            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=h)
+            if funding is not None:
+                break
 
-        # Đưa ra tín hiệu
+        # ✅ Cross Margin Rate ưu tiên giờ dài → ngắn
+        for h in [12, 6, 3]:
+            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
+            if cross is not None:
+                break
+
+        # ✅ Logic khuyến nghị
         if "MUA" in bot_action and funding is not None and funding < -0.0003 and cross and cross > 0.00005:
             signal = "💰 MUA mạnh"
         elif "BÁN" in bot_action and funding is not None and funding > 0.0003 and cross and cross > 0.00005:
@@ -671,6 +670,16 @@ def generate_recommendation():
             "signal": signal
         })
 
+    # ✅ Ghi vào decision_log.csv
+    log_path = "decision_log.csv"
+    file_exists = os.path.exists(log_path)
+    with open(log_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=result[0].keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerows(result)
+
+    print(f"[DECISION] ✅ Đã ghi {len(result)} khuyến nghị.")
     log_path = "decision_log.csv"
     file_exists = os.path.exists(log_path)
     with open(log_path, "a", newline="", encoding="utf-8") as f:
