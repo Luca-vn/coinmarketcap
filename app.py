@@ -844,14 +844,14 @@ elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_or
 else:
     signal = "🤔 CHỜ"
 
-        result.append({
-            "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
-            "asset": coin,
-            "bot_action": bot_action,
-            "funding_rate": f"{funding * 100:.4f}%" if funding is not None else "-",
-            "cross_margin": f"{cross:.6f}" if cross is not None else "-",
-            "signal": signal
-        })
+    result.append({
+        "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "asset": coin,
+        "bot_action": bot_action,
+        "funding_rate": f"{funding * 100:.4f}%" if funding is not None else "-",
+        "cross_margin": f"{cross:.6f}" if cross is not None else "-",
+        "signal": signal
+    })
 
     # ✅ Ghi vào decision_log.csv
     log_path = "decision_log.csv"
