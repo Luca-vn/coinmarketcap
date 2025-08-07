@@ -873,6 +873,92 @@ else:
 
     print(f"[DECISION] ✅ Đã ghi {len(result)} khuyến nghị.")
 
+def generate_recommendation():
+    now = datetime.now()
+    current_time = now.strftime("%H:%M")
+
+    if current_time not in ["06:00", "18:00"]:
+        return  # Chỉ chạy 2 khung giờ cố định
+
+    LOG_FILE = "cross_margin_history.csv"
+    FUNDING_FILE = "funding_history.csv"
+    BOT_FILE = "bot_chart_log.csv"
+    OUTPUT_FILE = "decision_log.csv"
+
+    fieldnames = [
+        "timestamp", "asset",
+        "price", "price_pct", "volume_pct",
+        "bot_action", "funding", "cross_margin",
+        "orderbook_signal", "orderbook_bias",
+        "recommendation"
+    ]
+
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    result = []
+
+    for coin in assets:
+        price = get_price(coin)
+        price_pct, volume_pct = get_latest_pct_change(coin, hours=3)
+        bot_action = get_bot_action_summary(coin, hours=12)
+        funding = get_funding_rate(coin)
+        
+        cross = None
+        for h in [12, 6, 3]:
+            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
+            if cross is not None:
+                break
+
+        orderbook = get_orderbook_summary(coin)
+        signal_orderbook = orderbook["signal"] if orderbook else "⚠️ Tránh"
+        bias_orderbook = orderbook["bias"] if orderbook else 0
+
+        # 🔍 Logic ra tín hiệu
+        if (
+            "MUA" in bot_action and 
+            funding is not None and funding < -0.0003 and 
+            cross and cross > 0.00005 and 
+            "Long" in signal_orderbook
+        ):
+            signal = "💰 MUA mạnh"
+
+        elif (
+            "BÁN" in bot_action and 
+            funding is not None and funding > 0.0003 and 
+            cross and cross > 0.00005 and 
+            "Short" in signal_orderbook
+        ):
+            signal = "⚠️ BÁN mạnh"
+
+        elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_orderbook:
+            signal = "🚨 TRÁNH"
+
+        else:
+            signal = "🤔 CHỜ"
+
+        result.append({
+            "timestamp": timestamp,
+            "asset": coin,
+            "price": price,
+            "price_pct": price_pct,
+            "volume_pct": volume_pct,
+            "bot_action": bot_action,
+            "funding": funding,
+            "cross_margin": cross,
+            "orderbook_signal": signal_orderbook,
+            "orderbook_bias": f"{bias_orderbook:.3f}",
+            "recommendation": signal
+        })
+
+    # 🔁 Ghi ra file log
+    file_exists = os.path.isfile(OUTPUT_FILE)
+    with open(OUTPUT_FILE, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        if not file_exists:
+            writer.writeheader()
+        writer.writerows(result)
+
+    print(f"[✅] {timestamp} - Đã sinh khuyến nghị vào {OUTPUT_FILE}")
+
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
