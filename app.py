@@ -816,10 +816,10 @@ def generate_summary_30m():
     except Exception as e:
         print(f"[❌] Lỗi summary 30m: {e}")
 
-for h in [12, 6, 3]:
-    cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
-    if cross is not None:
-        break
+        for h in [12, 6, 3]:
+            cross = get_avg_metric(asset, LOG_FILE, "hourly_rate", hours=h)
+        if cross is not None:
+            break
 
 # ✅ Logic khuyến nghị (lùi ra bên ngoài vòng for)
 if (
