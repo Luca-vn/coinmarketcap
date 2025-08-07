@@ -90,6 +90,38 @@ def get_cross_margin_data():
         print("[ERROR] fetch_cross_margin_data:", e)
         return {}
 
+def log_cross_margin_data(assets, filename="cross_margin_history.csv"):
+    try:
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        rows = []
+
+        for coin in assets:
+            try:
+                url = f"https://api.binance.com/sapi/v1/margin/interestRateHistory?asset={coin.replace('USDT', '')}&isolated=false"
+                headers = {'Content-Type': 'application/json'}
+                response = requests.get(url, headers=headers)
+                data = response.json()
+
+                if isinstance(data, list) and len(data) > 0:
+                    hourly_rate = float(data[-1]["hourlyInterestRate"])
+                    rows.append({"timestamp": timestamp, "asset": coin, "hourly_rate": hourly_rate})
+                    print(f"[LOG CROSS] ✅ {coin} - {hourly_rate}")
+                else:
+                    print(f"[LOG CROSS] ❌ Không có dữ liệu cho {coin}")
+            except Exception as e:
+                print(f"[ERROR] ❌ {coin}: {e}")
+
+        if rows:
+            file_exists = os.path.exists(filename)
+            with open(filename, "a", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=["timestamp", "asset", "hourly_rate"])
+                if not file_exists:
+                    writer.writeheader()
+                writer.writerows(rows)
+
+    except Exception as e:
+        print(f"[ERROR] ❌ Lỗi ghi cross margin: {e}")
+
 def get_funding_rate():
     url = "https://fapi.binance.com/fapi/v1/premiumIndex"
     try:
@@ -961,6 +993,7 @@ def generate_recommendation():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
+    schedule.every().hour.at(":01").do(lambda: log_cross_margin_data(tracked_assets))
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
