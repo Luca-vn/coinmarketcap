@@ -896,12 +896,12 @@ def generate_recommendation():
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
     result = []
 
-    for coin in assets:
+    for coin in assets:  # 🟢 Phải có dòng này để định nghĩa `coin`
         price = get_price(coin)
         price_pct, volume_pct = get_latest_pct_change(coin, hours=3)
         bot_action = get_bot_action_summary(coin, hours=12)
         funding = get_funding_rate(coin)
-        
+
         cross = None
         for h in [12, 6, 3]:
             cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
@@ -912,7 +912,7 @@ def generate_recommendation():
         signal_orderbook = orderbook["signal"] if orderbook else "⚠️ Tránh"
         bias_orderbook = orderbook["bias"] if orderbook else 0
 
-        # 🔍 Logic ra tín hiệu
+        # ✅ Tín hiệu khuyến nghị
         if (
             "MUA" in bot_action and 
             funding is not None and funding < -0.0003 and 
@@ -931,7 +931,6 @@ def generate_recommendation():
 
         elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_orderbook:
             signal = "🚨 TRÁNH"
-
         else:
             signal = "🤔 CHỜ"
 
@@ -949,7 +948,7 @@ def generate_recommendation():
             "recommendation": signal
         })
 
-    # 🔁 Ghi ra file log
+    # ✅ Ghi log
     file_exists = os.path.isfile(OUTPUT_FILE)
     with open(OUTPUT_FILE, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
