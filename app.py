@@ -818,31 +818,31 @@ def generate_summary_30m():
 
         for h in [12, 6, 3]:
             cross = get_avg_metric(asset, LOG_FILE, "hourly_rate", hours=h)
-        if cross is not None:
-            break
+            if cross is not None:
+                break
 
 # ✅ Logic khuyến nghị (lùi ra bên ngoài vòng for)
-if (
-    "MUA" in bot_action and 
-    funding is not None and funding < -0.0003 and 
-    cross and cross > 0.00005 and 
-    "Long" in signal_orderbook
-):
-    signal = "💰 MUA mạnh"
+    if (
+        "MUA" in bot_action and 
+        funding is not None and funding < -0.0003 and 
+        cross and cross > 0.00005 and 
+        "Long" in signal_orderbook
+    ):
+        signal = "💰 MUA mạnh"
 
-elif (
-    "BÁN" in bot_action and 
-    funding is not None and funding > 0.0003 and 
-    cross and cross > 0.00005 and 
-    "Short" in signal_orderbook
-):
-    signal = "⚠️ BÁN mạnh"
+    elif (
+        "BÁN" in bot_action and 
+        funding is not None and funding > 0.0003 and 
+        cross and cross > 0.00005 and 
+        "Short" in signal_orderbook
+    ):
+        signal = "⚠️ BÁN mạnh"
 
-elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_orderbook:
-    signal = "🚨 TRÁNH"
+    elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_orderbook:
+        signal = "🚨 TRÁNH"
 
-else:
-    signal = "🤔 CHỜ"
+    else:
+        signal = "🤔 CHỜ"
 
     result.append({
         "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
