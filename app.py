@@ -619,47 +619,230 @@ def get_avg_metric(asset, filepath, colname="funding_rate", hours=12, min_record
         print(f"[AVG METRIC ERROR] {asset} in {filepath}: {e}")
         return None
 
-def generate_recommendation():
-    now = datetime.now(timezone.utc).astimezone(pytz.timezone("Asia/Bangkok"))
-    if now.hour not in [6, 18]:
-        return
+def get_orderbook_summary(asset, minutes=30):
+    try:
+        df = safe_read_csv("summary_30m.csv")
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df[df["asset"] == asset.upper()]
+        if df.empty:
+            return None
+        
+        last_row = df.sort_values("timestamp").iloc[-1]
 
-    print("[DECISION] ⏰ Đang tạo bảng khuyến nghị...")
+        signal = last_row["last_signal"]
+        trap_short = last_row["trap_short_count"]
+        trap_long = last_row["trap_long_count"]
 
-    df = safe_read_csv(BOT_LOG_FILE)
-    df["asset"] = df["asset"].str.upper()
-    funding_data = get_funding_rate()
-    margin_data = get_cross_margin_data()
+        return {
+            "signal": signal,
+            "trap": trap_short + trap_long,
+            "bias": float(last_row["bias_avg_30m"])
+        }
+    except Exception as e:
+        print(f"[ORDERBOOK SUMMARY ERROR] {asset}: {e}")
+        return None
 
+def log_orderbook():
+    log_file = "orderbook_log.csv"
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            f.write("timestamp,asset,top_bid_price,top_ask_price,bid_volume,ask_volume,orderbook_bias,spread,top3_bid_qty,top3_ask_qty\n")
+
+    for asset in assets:
+        try:
+            url = f"https://api.binance.com/api/v3/depth?symbol={asset}USDT&limit=5"
+            response = requests.get(url)
+            data = response.json()
+
+            bids = data["bids"]
+            asks = data["asks"]
+
+            top_bid_price = float(bids[0][0])
+            top_ask_price = float(asks[0][0])
+            spread = top_ask_price - top_bid_price
+
+            bid_volume = sum(float(bid[1]) for bid in bids)
+            ask_volume = sum(float(ask[1]) for ask in asks)
+
+            orderbook_bias = (bid_volume - ask_volume) / (bid_volume + ask_volume + 1e-9)
+
+            top3_bid_qty = sum(float(bid[1]) for bid in bids[:3])
+            top3_ask_qty = sum(float(ask[1]) for ask in asks[:3])
+
+            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+            with open(log_file, "a") as f:
+                f.write(f"{timestamp},{asset}USDT,{top_bid_price},{top_ask_price},{bid_volume:.6f},{ask_volume:.6f},{orderbook_bias:.6f},{spread:.2f},{top3_bid_qty:.6f},{top3_ask_qty:.6f}\n")
+
+            print(f"[OB ✅] {asset} | Bid={bid_volume:.2f} | Ask={ask_volume:.2f} | Spread={spread:.2f}")
+        except Exception as e:
+            print(f"[OB ❌] {asset}: {e}")
+            
+def log_trade_history():
+    log_file = "trade_history.csv"
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            f.write("timestamp,asset,buy_volume,sell_volume,total_volume\n")
+
+    for asset in assets:
+        try:
+            url = f"https://api.binance.com/api/v3/trades?symbol={asset}USDT&limit=1000"
+            response = requests.get(url)
+            data = response.json()
+
+            buy_volume = 0
+            sell_volume = 0
+
+            for trade in data:
+                qty = float(trade["qty"])
+                if trade["isBuyerMaker"]:
+                    sell_volume += qty
+                else:
+                    buy_volume += qty
+
+            total_volume = buy_volume + sell_volume
+            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+            with open(log_file, "a") as f:
+                f.write(f"{timestamp},{asset}USDT,{buy_volume:.6f},{sell_volume:.6f},{total_volume:.6f}\n")
+
+            print(f"[TR ✅] {asset}: Buy={buy_volume:.2f}, Sell={sell_volume:.2f}")
+        except Exception as e:
+            print(f"[TR ❌] {asset}: {e}")
+
+def generate_orderbook_signal_v4(df_coin):
     result = []
-    for coin in assets:
-        # ✅ Bot Action ưu tiên theo độ dài giờ
-        for h in [12, 6, 3]:
-            bot_action = get_bot_action_summary(coin, hours=h)
-            if "Thiếu log" not in bot_action:
-                break
+    demand_streak = 0
+    supply_streak = 0
 
-        # ✅ Funding Rate ưu tiên giờ dài → ngắn
-        for h in [12, 6, 3]:
-            funding = get_avg_metric(coin, FUNDING_LOG_FILE, "funding_rate", hours=h)
-            if funding is not None:
-                break
-
-        # ✅ Cross Margin Rate ưu tiên giờ dài → ngắn
-        for h in [12, 6, 3]:
-            cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
-            if cross is not None:
-                break
-
-        # ✅ Logic khuyến nghị
-        if "MUA" in bot_action and funding is not None and funding < -0.0003 and cross and cross > 0.00005:
-            signal = "💰 MUA mạnh"
-        elif "BÁN" in bot_action and funding is not None and funding > 0.0003 and cross and cross > 0.00005:
-            signal = "⚠️ BÁN mạnh"
-        elif "Trap" in bot_action:
-            signal = "🚨 TRÁNH"
+    for _, row in df_coin.iterrows():
+        if row["real_demand"]:
+            demand_streak += 1
+            supply_streak = 0
+        elif row["real_supply"]:
+            supply_streak += 1
+            demand_streak = 0
         else:
-            signal = "🤔 CHỜ"
+            demand_streak = 0
+            supply_streak = 0
+
+        if row["trap_short"] and row["real_demand"]:
+            signal = "✅ Long (trap + gom)"
+        elif row["trap_long"] and row["real_supply"]:
+            signal = "🔻 Short (trap + xả)"
+        elif demand_streak >= 3:
+            signal = "🟢 Long mạnh (gom lặp lại)"
+        elif supply_streak >= 3:
+            signal = "🔴 Short mạnh (xả lặp lại)"
+        elif row["real_demand"] and row["orderbook_bias"] > 0.2:
+            signal = "🟢 Long nhẹ"
+        elif row["real_supply"] and row["orderbook_bias"] < -0.2:
+            signal = "🔴 Short nhẹ"
+        elif row["real_demand"] and row["real_supply"]:
+            if row["orderbook_bias"] > 0:
+                signal = "🟡 Gom âm thầm"
+            else:
+                signal = "🖤 Xả âm thầm"
+        elif row["real_demand"]:
+            signal = "🟡 Gom âm thầm"
+        elif row["real_supply"]:
+            signal = "🖤 Xả âm thầm"
+        else:
+            signal = "⚠️ Tránh"
+
+        result.append(signal)
+
+    return result
+
+def analyze_and_combine():
+    try:
+        trade_df = pd.read_csv("trade_history.csv")
+        orderbook_df = pd.read_csv("orderbook_log.csv")
+
+        trade_df["timestamp"] = pd.to_datetime(trade_df["timestamp"]).dt.floor("min")
+        orderbook_df["timestamp"] = pd.to_datetime(orderbook_df["timestamp"]).dt.floor("min")
+
+        df = pd.merge(trade_df, orderbook_df, on=["timestamp", "asset"], how="inner")
+
+        df["buy_vs_bid"] = df["buy_volume"] / (df["bid_volume"] + 1e-9)
+        df["sell_vs_ask"] = df["sell_volume"] / (df["ask_volume"] + 1e-9)
+
+        df["real_demand"] = df["buy_vs_bid"] > 1.01
+        df["real_supply"] = df["sell_vs_ask"] > 1.01
+
+        df["trap_long"] = (df["orderbook_bias"] < -0.2) & (df["buy_vs_bid"] < 0.5)
+        df["trap_short"] = (df["orderbook_bias"] > 0.2) & (df["sell_vs_ask"] < 0.5)
+
+        df["recommendation_orderbook"] = (
+            df.groupby("asset").apply(generate_orderbook_signal_v4, include_groups=False).explode().values
+        )
+
+        df.to_csv("combined_order_analysis.csv", index=False)
+        print(f"[✅] {datetime.now().strftime('%H:%M:%S')} - Đã cập nhật combined_order_analysis.csv")
+
+    except Exception as e:
+        print(f"[❌] Phân tích lỗi: {e}")
+
+def generate_summary_30m():
+    try:
+        df = pd.read_csv("combined_order_analysis.csv")
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+        now = datetime.utcnow()
+        window_start = now - timedelta(minutes=30)
+        df = df[df["timestamp"] >= window_start]
+
+        summary = []
+        for asset in df["asset"].unique():
+            df_coin = df[df["asset"] == asset]
+            row = {
+                "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
+                "asset": asset,
+                "bias_avg_30m": df_coin["orderbook_bias"].mean(),
+                "spread_avg_30m": df_coin["spread"].mean(),
+                "buy_vs_bid_avg_30m": df_coin["buy_vs_bid"].mean(),
+                "sell_vs_ask_avg_30m": df_coin["sell_vs_ask"].mean(),
+                "real_demand_count": df_coin["real_demand"].sum(),
+                "real_supply_count": df_coin["real_supply"].sum(),
+                "trap_short_count": df_coin["trap_short"].sum(),
+                "trap_long_count": df_coin["trap_long"].sum(),
+                "last_signal": df_coin.sort_values("timestamp").iloc[-1]["recommendation_orderbook"]
+            }
+            summary.append(row)
+
+        pd.DataFrame(summary).to_csv("summary_30m.csv", index=False)
+        print(f"[📊] Đã ghi summary_30m.csv với {len(summary)} coin")
+
+    except Exception as e:
+        print(f"[❌] Lỗi summary 30m: {e}")
+
+for h in [12, 6, 3]:
+    cross = get_avg_metric(coin, LOG_FILE, "hourly_rate", hours=h)
+    if cross is not None:
+        break
+
+# ✅ Logic khuyến nghị (lùi ra bên ngoài vòng for)
+if (
+    "MUA" in bot_action and 
+    funding is not None and funding < -0.0003 and 
+    cross and cross > 0.00005 and 
+    "Long" in signal_orderbook
+):
+    signal = "💰 MUA mạnh"
+
+elif (
+    "BÁN" in bot_action and 
+    funding is not None and funding > 0.0003 and 
+    cross and cross > 0.00005 and 
+    "Short" in signal_orderbook
+):
+    signal = "⚠️ BÁN mạnh"
+
+elif "Trap" in bot_action or "Trap" in signal_orderbook or "Tránh" in signal_orderbook:
+    signal = "🚨 TRÁNH"
+
+else:
+    signal = "🤔 CHỜ"
 
         result.append({
             "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"),
@@ -696,7 +879,11 @@ def schedule_jobs():
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
-    scheduler.add_job(generate_recommendation, "cron", hour="6,21", minute=0)
+    scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
+    scheduler.add_job(log_orderbook, "interval", minutes=5)
+    scheduler.add_job(log_trade_history, "interval", minutes=5)
+    scheduler.add_job(analyze_and_combine, "interval", minutes=10)
+    scheduler.add_job(generate_summary_30m, "interval", minutes=30)
     scheduler.start()
     
 def test_telegram():
