@@ -98,8 +98,7 @@ def log_cross_margin_data(filename: str = CROSSMARGIN_LOG_FILE):
 
         with open(filename, "a") as f:
             for asset in assets:
-                rate_info = cross_data.get(asset.replace("USDT", ""))
-	rate_info = cross_data.get(asset)
+                rate_info = cross_data.get(asset)
                 if rate_info:
                     rate = rate_info.get("current")
                     if rate is not None:
@@ -165,7 +164,7 @@ def log_and_alert():
         with open(CROSSMARGIN_LOG_FILE, "w") as f:
             f.write("timestamp,asset,hourly_rate\n")
 
-    df_old = pd.read_csv(LOG_FILE)
+    df_old = pd.read_csv(CROSSMARGIN_LOG_FILE)
     alert_msgs = []
 
     with open(CROSSMARGIN_LOG_FILE, "a", encoding="utf-8") as f:
@@ -419,12 +418,20 @@ def index():
             "propose": "-"
         })
 
-        try:
-            df_decision = pd.read_csv("decision_log.csv")
-            last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
-            decision_data = last_decision.to_dict(orient="records")
-        except:
-            decision_data = []
+    try:
+        df_decision = pd.read_csv("decision_log.csv")
+        last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
+        decision_data = last_decision.to_dict(orient="records")
+    except:
+        decision_data = []
+
+    data = []
+    for coin in assets:
+        ...
+        data.append({
+            "asset": coin,
+            # các trường khác
+        })
 
     return render_template("index.html", data=data, decision_data=decision_data)
     
@@ -674,7 +681,6 @@ def get_orderbook_summary(asset, minutes=30):
         df = safe_read_csv("summary_30m.csv")
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df[df["asset"] == asset.upper()]
-        df = df[df["asset"] == f"{asset.upper()}USDT"]
         if df.empty:
             return None
         
