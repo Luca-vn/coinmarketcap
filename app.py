@@ -456,8 +456,6 @@ def chart_funding(asset):
         return f"Error generating funding chart: {e}"
 
 @app.route("/logfile")
-def download_log():
-    return send_file(CROSSMARGIN_LOG_FILE, as_attachment=True)
 
 def log_price_volume_data():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
