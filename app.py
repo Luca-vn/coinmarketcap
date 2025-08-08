@@ -99,6 +99,7 @@ def log_cross_margin_data(filename: str = CROSSMARGIN_LOG_FILE):
         with open(filename, "a") as f:
             for asset in assets:
                 rate_info = cross_data.get(asset.replace("USDT", ""))
+	rate_info = cross_data.get(asset)
                 if rate_info:
                     rate = rate_info.get("current")
                     if rate is not None:
@@ -195,6 +196,26 @@ def log_and_alert():
             print(f"[TELEGRAM] ✅ Sent CROSS MARGIN alert: {msg}")
         except Exception as e:
             print("[Telegram Error]", e)
+
+def _get_price_and_pct(coin: str, hours: int = 3):
+    df = safe_read_csv(BOT_LOG_FILE)
+    if df.empty:
+        return None, None, None
+    try:
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df = df[df["asset"].str.upper() == coin.upper()].sort_values("timestamp")
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        df = df[df["timestamp"] >= cutoff]
+        if df.empty:
+            return None, None, None
+        last = df.iloc[-1]
+        price = float(last.get("price", 0) or 0)
+        price_pct = float(last.get("price_pct", 0) or 0)
+        volume_pct = float(last.get("volume_pct", 0) or 0)
+        return price, price_pct, volume_pct
+    except Exception:
+        return None, None, None
+
 
 def get_order_book_bias(symbol):
     url = f"https://fapi.binance.com/fapi/v1/depth?symbol={symbol.upper()}&limit=10"
@@ -410,7 +431,7 @@ def index():
 @app.route("/chart/cross/<asset>")
 def chart_cross(asset):
     try:
-        df = safe_read_csv(LOG_FILE)
+        df = safe_read_csv(CROSSMARGIN_LOG_FILE)
         df_asset = df[df["asset"] == asset].tail(24).copy()
         if df_asset.empty:
             return f"No cross margin data for {asset}"
@@ -437,7 +458,7 @@ def chart_funding(asset):
 
 @app.route("/logfile")
 def download_log():
-    return send_file(LOG_FILE, as_attachment=True)
+    return send_file(CROSSMARGIN_LOG_FILE, as_attachment=True)
 
 def log_price_volume_data():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
@@ -653,6 +674,7 @@ def get_orderbook_summary(asset, minutes=30):
         df = safe_read_csv("summary_30m.csv")
         df["timestamp"] = pd.to_datetime(df["timestamp"])
         df = df[df["asset"] == asset.upper()]
+        df = df[df["asset"] == f"{asset.upper()}USDT"]
         if df.empty:
             return None
         
@@ -947,7 +969,6 @@ def generate_recommendation():
 def schedule_jobs():
     scheduler = BackgroundScheduler(timezone="Asia/Bangkok")
     scheduler.add_job(log_and_alert, "interval", hours=1)
-    scheduler.add_job(log_cross_margin_data, "interval", minutes=60)
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
