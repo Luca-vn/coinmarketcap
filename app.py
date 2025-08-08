@@ -358,6 +358,14 @@ def index():
     margin_data = get_cross_margin_data()
     btc_price = price_data.get("BTC", {}).get("price")
 
+    # ✅ Đọc khuyến nghị từ decision_log trước vòng for
+    try:
+        df_decision = pd.read_csv("decision_log.csv")
+        last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
+        decision_data = last_decision.to_dict(orient="records")
+    except:
+        decision_data = []
+
     data = []
     for coin in assets:
         info = price_data.get(coin, {})
@@ -390,7 +398,7 @@ def index():
         else:
             volume_pct = 0
 
-        # ✅ Gán các biến phụ trợ trước khi gọi hàm bot_action_v2
+        # ✅ Gán các biến phụ trợ
         cross = margin_data.get(coin, {})
         cross_margin = cross.get("current")
         next_margin = cross.get("next")
@@ -399,9 +407,16 @@ def index():
 
         # ✅ Gọi bot_action_v2
         bot_action = detect_bot_action_v2(price_pct, volume_pct, funding_rate, cross_margin, order_book_bias)
-
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
 
+        # ✅ Lấy khuyến nghị từ decision_log (nếu có)
+        recommendation = "-"
+        for row in decision_data:
+            if row["asset"] == coin:
+                recommendation = row.get("signal", "-")
+                break
+
+        # ✅ Append vào bảng
         data.append({
             "asset": coin,
             "price_usdt": f"{price:,.4f}" if price else "-",
@@ -415,16 +430,9 @@ def index():
             "funding_rate": f"{funding_rate * 100:.8f}%" if funding_rate is not None else "-",
             "order_book_bias": order_book_bias,
             "log_view": f"<a href='/chart/cross/{coin}' target='_blank'>Cross</a> | <a href='/chart/funding/{coin}' target='_blank'>Funding</a>",
-            "propose": "-"
+            "propose": recommendation
         })
 
-    try:
-        df_decision = pd.read_csv("decision_log.csv")
-        last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
-        decision_data = last_decision.to_dict(orient="records")
-    except:
-        decision_data = []
-        
     return render_template("index.html", data=data, decision_data=decision_data)
     
 @app.route("/chart/cross/<asset>")
