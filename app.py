@@ -424,15 +424,7 @@ def index():
         decision_data = last_decision.to_dict(orient="records")
     except:
         decision_data = []
-
-    data = []
-    for coin in assets:
-        ...
-        data.append({
-            "asset": coin,
-            # các trường khác
-        })
-
+        
     return render_template("index.html", data=data, decision_data=decision_data)
     
 @app.route("/chart/cross/<asset>")
