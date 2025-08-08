@@ -90,38 +90,34 @@ def get_cross_margin_data():
         print("[ERROR] fetch_cross_margin_data:", e)
         return {}
 
-def log_cross_margin_data(assets, filename="cross_margin_history.csv"):
+def log_cross_margin_data(filename="cross_margin_history.csv"):
     try:
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        rows = []
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
+        cross_data = get_cross_margin_data()
 
-        for coin in assets:
-            try:
-                url = f"https://api.binance.com/sapi/v1/margin/interestRateHistory?asset={coin.replace('USDT', '')}&isolated=false"
-                headers = {'Content-Type': 'application/json'}
-                response = requests.get(url, headers=headers)
-                data = response.json()
+        if not cross_data:
+            print("[LOG CROSS] Không có dữ liệu cross margin.")
+            return
 
-                if isinstance(data, list) and len(data) > 0:
-                    hourly_rate = float(data[-1]["hourlyInterestRate"])
-                    rows.append({"timestamp": timestamp, "asset": coin, "hourly_rate": hourly_rate})
-                    print(f"[LOG CROSS] ✅ {coin} - {hourly_rate}")
+        if not os.path.exists(filename):
+            with open(filename, "w") as f:
+                f.write("timestamp,asset,hourly_rate\n")
+
+        with open(filename, "a") as f:
+            for asset in assets:
+                rate_info = cross_data.get(asset.replace("USDT", ""))
+                if rate_info:
+                    rate = rate_info.get("current")
+                    if rate is not None:
+                        f.write(f"{now},{asset},{rate}\n")
+                        print(f"[LOG CROSS] ✅ Đã ghi {asset} - {rate}")
+                    else:
+                        print(f"[LOG CROSS] ⚠️ Không có rate cho {asset}")
                 else:
-                    print(f"[LOG CROSS] ❌ Không có dữ liệu cho {coin}")
-            except Exception as e:
-                print(f"[ERROR] ❌ {coin}: {e}")
-
-        if rows:
-            file_exists = os.path.exists(filename)
-            with open(filename, "a", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=["timestamp", "asset", "hourly_rate"])
-                if not file_exists:
-                    writer.writeheader()
-                writer.writerows(rows)
-
+                    print(f"[LOG CROSS] ⚠️ Không có dữ liệu cho {asset}")
     except Exception as e:
-        print(f"[ERROR] ❌ Lỗi ghi cross margin: {e}")
-
+        print(f"[LOG CROSS] ❌ Lỗi ghi cross margin: {e}")
+        
 def get_funding_rate():
     url = "https://fapi.binance.com/fapi/v1/premiumIndex"
     try:
