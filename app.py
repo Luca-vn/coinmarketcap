@@ -912,12 +912,14 @@ def generate_recommendation():
     FUNDING_FILE = "funding_history.csv"
     BOT_FILE = "bot_chart_log.csv"
     OUTPUT_FILE = "decision_log.csv"
+    TRADE_FILE = "trade_history.csv"
 
     fieldnames = [
         "timestamp", "asset",
         "price", "price_pct", "volume_pct",
         "bot_action", "funding", "cross_margin",
         "orderbook_signal", "orderbook_bias",
+        "buy_vs_sell_ratio",
         "recommendation"
     ]
 
@@ -929,6 +931,17 @@ def generate_recommendation():
         price_pct, volume_pct = get_latest_pct_change(coin, hours=3)
         bot_action = get_bot_action_summary(coin, hours=12)
         funding = get_funding_rate(coin)
+        # 🔍 Lấy dữ liệu Buy/Sell Volume gần nhất
+        buy_vs_sell_ratio = None
+        try:
+            df_trade = pd.read_csv(TRADE_FILE)
+            df_trade = df_trade[df_trade["asset"] == coin + "USDT"]
+            latest_trade = df_trade.sort_values("timestamp").iloc[-1]
+            buy_vol = latest_trade["buy_volume"]
+            sell_vol = latest_trade["sell_volume"]
+            buy_vs_sell_ratio = buy_vol / (sell_vol + 1e-6)
+        except Exception as e:
+            print(f"[TRADE RATIO ERROR] {coin}: {e}")
 
         cross = None
         for h in [12, 6, 3]:
@@ -945,7 +958,8 @@ def generate_recommendation():
             "MUA" in bot_action and 
             funding is not None and funding < -0.0003 and 
             cross and cross > 0.00005 and 
-            "Long" in signal_orderbook
+            "Long" in signal_orderbook and
+            buy_vs_sell_ratio is not None and buy_vs_sell_ratio > 1.2
         ):
             signal = "💰 MUA mạnh"
 
@@ -953,7 +967,8 @@ def generate_recommendation():
             "BÁN" in bot_action and 
             funding is not None and funding > 0.0003 and 
             cross and cross > 0.00005 and 
-            "Short" in signal_orderbook
+            "Short" in signal_orderbook and
+            buy_vs_sell_ratio is not None and buy_vs_sell_ratio < 0.8
         ):
             signal = "⚠️ BÁN mạnh"
 
@@ -973,6 +988,7 @@ def generate_recommendation():
             "cross_margin": cross,
             "orderbook_signal": signal_orderbook,
             "orderbook_bias": f"{bias_orderbook:.3f}",
+            "buy_vs_sell_ratio": round(buy_vs_sell_ratio, 2) if buy_vs_sell_ratio is not None else "-",
             "recommendation": signal
         })
 
