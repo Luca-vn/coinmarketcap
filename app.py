@@ -628,7 +628,7 @@ def log_and_analyze_bot_action():
     log_bot_action()
         
 
-def get_bot_action_summary(asset, hours=12, min_records=6):
+def get_bot_action_summary(asset, hours=6, min_records=2):
     try:
         df = safe_read_csv(BOT_LOG_FILE)
         if df.empty:
@@ -655,7 +655,7 @@ def get_bot_action_summary(asset, hours=12, min_records=6):
         print(f"[BOT SUMMARY ERROR] {asset}: {e}")
         return "⚪ Lỗi"
         
-def get_avg_metric(asset, filepath, colname="funding_rate", hours=12, min_records=3):
+def get_avg_metric(asset, filepath, colname="funding_rate", hours=6, min_records=1):
     try:
         df = safe_read_csv(filepath)
         if df.empty:
@@ -888,7 +888,7 @@ def generate_recommendation():
 
     for coin in assets:
         price, price_pct, volume_pct = _get_price_and_pct(coin, hours=3)
-        bot_action = get_bot_action_summary(coin, hours=12)
+        bot_action = get_bot_action_summary(coin, hours=6, min_records=2)
         funding = funding_map.get(coin)
 
         # ratio buy/sell gần nhất
@@ -906,7 +906,7 @@ def generate_recommendation():
 
         # cross margin avg (12h→6h→3h)
         cross = None
-        for h in [12, 6, 3]:
+        for h in [6, 3, 1]:
             cross = get_avg_metric(coin, CROSSMARGIN_LOG_FILE, "hourly_rate", hours=h)
             if cross is not None:
                 break
