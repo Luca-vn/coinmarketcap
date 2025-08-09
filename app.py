@@ -410,11 +410,8 @@ def index():
         price_btc = (price / btc_price) if price and btc_price and coin != "BTC" else 1 if coin == "BTC" else None
 
         # ✅ Lấy khuyến nghị từ decision_log (nếu có)
-        recommendation = "-"
-        for row in decision_data:
-            if row["asset"] == coin:
-                recommendation = row.get("signal", "-")
-                break
+        decision_map = {row["asset"]: row.get("recommendation", "-") for row in decision_data}
+        recommendation = decision_map.get(coin, "-")
 
         # ✅ Append vào bảng
         data.append({
@@ -464,7 +461,6 @@ def chart_funding(asset):
         return f"Error generating funding chart: {e}"
 
 @app.route("/logfile")
-
 def log_price_volume_data():
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:00:00")
     price_data = get_binance_price_volume()
@@ -873,13 +869,9 @@ def generate_summary_30m():
 
 def generate_recommendation():
     now = datetime.now()
-    current_time = now.strftime("%H:%M")
-    if current_time not in ["06:00", "18:00"]:
-        return
-
     OUTPUT_FILE = "decision_log.csv"
     TRADE_FILE = "trade_history.csv"
-
+    
     fieldnames = [
         "timestamp", "asset",
         "price", "price_pct", "volume_pct",
@@ -976,7 +968,7 @@ def schedule_jobs():
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
-    scheduler.add_job(generate_recommendation, "cron", hour="6,18", minute=0)
+    scheduler.add_job(generate_recommendation, "cron", hour="19,20,21", minute=0)
     scheduler.add_job(log_orderbook, "interval", minutes=5)
     scheduler.add_job(log_trade_history, "interval", minutes=5)
     scheduler.add_job(analyze_and_combine, "interval", minutes=10)
