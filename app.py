@@ -872,7 +872,7 @@ def generate_recommendation():
     now = datetime.now()
     OUTPUT_FILE = "decision_log.csv"
     TRADE_FILE = "trade_history.csv"
-    
+
     fieldnames = [
         "timestamp", "asset",
         "price", "price_pct", "volume_pct",
@@ -888,8 +888,10 @@ def generate_recommendation():
     funding_map = get_funding_rate()
 
     for coin in assets:
-        price, price_pct, volume_pct = _get_price_and_pct(coin, hours=3)
-        bot_action = get_bot_action_summary(coin, hours=6, min_records=2)
+        # --- 8h window ---
+        price, price_pct, volume_pct = _get_price_and_pct(coin, hours=3)  # giá/volume vẫn lấy gần 3h là hợp lý
+        bot_action = get_bot_action_summary(coin, hours=8, min_records=4)
+
         funding = funding_map.get(coin)
 
         # ratio buy/sell gần nhất
@@ -905,17 +907,19 @@ def generate_recommendation():
         except Exception as e:
             print(f"[TRADE RATIO ERROR] {coin}: {e}")
 
-        # cross margin avg (12h→6h→3h)
+        # cross margin avg: 8h -> 6h -> 3h, nhận nếu có >=2 bản ghi
         cross = None
-        for h in [6, 3, 1]:
-            cross = get_avg_metric(coin, CROSSMARGIN_LOG_FILE, "hourly_rate", hours=h)
+        for h in [8, 6, 3]:
+            cross = get_avg_metric(coin, CROSSMARGIN_LOG_FILE, "hourly_rate", hours=h, min_records=2)
             if cross is not None:
                 break
 
+        # orderbook 30m summary như cũ
         orderbook = get_orderbook_summary(coin)
         signal_orderbook = orderbook["signal"] if orderbook else "⚠️ Tránh"
         bias_orderbook = orderbook["bias"] if orderbook else 0.0
-        
+
+        # --- ra quyết định ---
         ba = str(bot_action)
         so = str(signal_orderbook)
 
@@ -969,7 +973,7 @@ def schedule_jobs():
     scheduler.add_job(log_funding_data, "interval", minutes=30)
     scheduler.add_job(log_price_volume_data, "interval", minutes=30)
     scheduler.add_job(log_and_analyze_bot_action, "interval", minutes=30)
-    scheduler.add_job(generate_recommendation, "cron", hour="19,20,21", minute=0)
+    scheduler.add_job(generate_recommendation, "cron", hour="6,14,22", minute=0)
     scheduler.add_job(log_orderbook, "interval", minutes=5)
     scheduler.add_job(log_trade_history, "interval", minutes=5)
     scheduler.add_job(analyze_and_combine, "interval", minutes=10)
