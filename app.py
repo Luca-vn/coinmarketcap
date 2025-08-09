@@ -634,9 +634,10 @@ def get_bot_action_summary(asset, hours=6, min_records=2):
         df = safe_read_csv(BOT_LOG_FILE)
         if df.empty:
             return "⚪ Thiếu log bot"
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         df = df[df["asset"].str.upper() == asset.upper()]
-        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
+        df = df[df["timestamp"] >= cutoff]
         if df.shape[0] < min_records:
             return "⚪ Thiếu log bot"
         counts = df["bot_action"].value_counts()
@@ -656,14 +657,15 @@ def get_bot_action_summary(asset, hours=6, min_records=2):
         print(f"[BOT SUMMARY ERROR] {asset}: {e}")
         return "⚪ Lỗi"
         
-def get_avg_metric(asset, filepath, colname="funding_rate", hours=6, min_records=1):
+def get_avg_metric(asset, filepath, colname="funding_rate", hours=8, min_records=2):
     try:
         df = safe_read_csv(filepath)
         if df.empty:
             return None
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
         df = df[df["asset"].str.upper() == asset.upper()]
-        df = df[df["timestamp"] >= datetime.utcnow() - timedelta(hours=hours)]
+        df = df[df["timestamp"] >= cutoff]
         if df.shape[0] < min_records:
             return None
         return df[colname].astype(float).mean()
@@ -720,7 +722,7 @@ def log_orderbook():
             top3_bid_qty = sum(float(bid[1]) for bid in bids[:3])
             top3_ask_qty = sum(float(ask[1]) for ask in asks[:3])
 
-            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
             with open(log_file, "a") as f:
                 f.write(f"{timestamp},{asset}USDT,{top_bid_price},{top_ask_price},{bid_volume:.6f},{ask_volume:.6f},{orderbook_bias:.6f},{spread:.2f},{top3_bid_qty:.6f},{top3_ask_qty:.6f}\n")
@@ -752,7 +754,7 @@ def log_trade_history():
                     buy_volume += qty
 
             total_volume = buy_volume + sell_volume
-            timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
             with open(log_file, "a") as f:
                 f.write(f"{timestamp},{asset}USDT,{buy_volume:.6f},{sell_volume:.6f},{total_volume:.6f}\n")
@@ -839,8 +841,8 @@ def generate_summary_30m():
         df = safe_read_csv("combined_order_analysis.csv")
         if df.empty:
             return
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-        now = datetime.utcnow()
+        df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+        now = datetime.now(timezone.utc)
         window_start = now - timedelta(minutes=30)
         df = df[df["timestamp"] >= window_start]
         summary = []
