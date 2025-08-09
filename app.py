@@ -361,6 +361,7 @@ def index():
     # ✅ Đọc khuyến nghị từ decision_log trước vòng for
     try:
         df_decision = pd.read_csv("decision_log.csv")
+        df_decision = df_decision.fillna("-")   # <— thêm dòng này
         last_decision = df_decision.sort_values("timestamp").groupby("asset").tail(1)
         decision_data = last_decision.to_dict(orient="records")
     except:
