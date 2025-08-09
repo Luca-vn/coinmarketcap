@@ -53,37 +53,35 @@
         </tbody>
     </table>
     <br><hr><br>
-<h3>📋 Gợi ý giao dịch (06:00 & 18:00)</h3>
+<h3>📋 Gợi ý giao dịch</h3>
 <table>
-<thead>
+  <thead>
     <tr>
-        <th>Asset</th>
-        <th>Gợi ý</th>
+      <th>Asset</th>
+      <th>Gợi ý</th>
     </tr>
-</thead>
-<tbody>
+  </thead>
+  <tbody>
     {% for row in decision_data %}
+    {% set rec = row.recommendation or '-' %}
     <tr>
-        <td>{{ row.asset }}</td>
-        <td>{{ row.bot_action }}</td>
-        <td>{{ row.funding_rate }}</td>
-        <td>{{ row.cross_margin }}</td>
-        <td style="
-            {% if 'MUA' in row.signal %}
-                background-color:#d4edda; color:#155724; font-weight:bold;
-            {% elif 'BÁN' in row.signal %}
-                background-color:#f8d7da; color:#721c24; font-weight:bold;
-            {% elif 'TRÁNH' in row.signal %}
-                background-color:#fff3cd; color:#856404; font-weight:bold;
-            {% else %}
-                color:#6c757d;
-            {% endif %}
-        ">
-            {{ row.signal }}
-        </td>
+      <td>{{ row.asset }}</td>
+      <td style="
+        {% if 'MUA' in rec %}
+          background-color:#d4edda; color:#155724; font-weight:bold;
+        {% elif 'BÁN' in rec %}
+          background-color:#f8d7da; color:#721c24; font-weight:bold;
+        {% elif 'TRÁNH' in rec %}
+          background-color:#fff3cd; color:#856404; font-weight:bold;
+        {% else %}
+          color:#6c757d;
+        {% endif %}
+      ">
+        {{ rec }}
+      </td>
     </tr>
     {% endfor %}
-</tbody>
+  </tbody>
 </table>
 </body>
 </html>
