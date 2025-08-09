@@ -999,6 +999,11 @@ def download_file(filename):
     except Exception as e:
         return f"❌ Không thể tải file: {e}"
         
+@app.route("/run/reco")
+def run_reco():
+    generate_recommendation()
+    return "OK"
+      
 test_telegram()
 schedule_jobs()
 
